@@ -1,0 +1,430 @@
+\documentclass[pdflatex,sn-apa]{sn-jnl}
+
+% Springer Nature / Journal of Business Ethics LaTeX manuscript package.
+% For final submission, use the official Springer Nature sn-jnl.cls if provided by the journal.
+
+\usepackage{graphicx}
+\usepackage{amsmath,amssymb}
+\usepackage{booktabs}
+\usepackage{tabularx}
+\usepackage{array}
+\usepackage{makecell}
+\usepackage{enumitem}
+\usepackage{xcolor}
+\usepackage{textcomp}
+\usepackage{float}
+\usepackage{placeins}
+\usepackage{url}
+\usepackage[title]{appendix}
+\raggedbottom
+
+\newcolumntype{Y}{>{\raggedright\arraybackslash}X}
+\newcommand{\Rtwo}{R\textsuperscript{2}}
+
+\begin{document}
+
+\title[Ethical Governance as Business Infrastructure]{Ethical Governance as Business Infrastructure: How Institutional Integrity Shapes National Innovation Capacity}
+
+
+\author*[1]{\fnm{Khushi} \sur{Jindal}}\email{khushijindal06@gmail.com}
+
+\author*[2]{\fnm{Uday Sai} \sur{Garavandala}}\email{garavandalaudaysai123@gmail.com}
+
+\affil*[1]{\orgdiv{Department of Information Technology}, \orgname{Delhi Technological University}, \orgaddress{\city{Delhi}, \country{India}}}
+
+\affil*[2]{\orgdiv{Delhi School of Management}, \orgname{Delhi Technological University}, \orgaddress{\city{Delhi}, \country{India}}}
+
+\abstract{What role does ethical governance play in national innovation capacity? Using the World Economic Forum (WEF) Global Competitiveness Index (GCI) historical dataset covering 152 economies from 2007 to 2017 (1,524 country-year observations; 1,357 in lagged specifications), we examine the relationship between ethical governance and national innovation capacity. To our knowledge, this is among the first panel studies to combine two-way fixed-effects regression with lagged governance predictors, leak-free machine learning, SHAP (SHapley Additive explanations) explainability, and country clustering for this topic. The primary lagged fixed-effects specification shows $\beta=0.246$ ($p<0.001$, clustered SE), establishing a time-based association between ethics and innovation. A mediation analysis using Government Efficiency as a comparatively cleaner institutional mediator ($r=0.874$ with ethics, versus $r=0.957$ for the full Institutions pillar) reveals partial mediation: the ethics coefficient falls to $\beta=0.088$ ($p=0.049$) while Government Efficiency remains strongly significant ($\beta=0.317$, $p<0.001$), indicating both a weak direct link and an indirect link through government efficiency. Leak-free Random Forest achieves cross-validated $R^2=0.847$ (random), 0.844 (country-grouped), and 0.904 (temporal holdout 2015--2017), confirming generalisation to unseen countries and future years. SHAP analysis shows governance indicators collectively explain $R^2=0.678$, though individual ethics proxies show diffuse attribution owing to high inter-proxy correlations ($r>0.92$). K-Means clustering identifies four country archetypes, and the ethics--innovation association strengthens from $\beta=0.183$ before 2010 to $\beta=0.436$ after 2010. Five robustness checks confirm positive governance associations across alternative proxy choices.}
+
+\keywords{Ethical governance, business ethics infrastructure, corruption, national innovation systems, fixed-effects panel regression, explainable machine learning}
+
+\maketitle
+
+\section{Introduction}
+\label{sec:introduction}
+
+The question of why some countries innovate far more productively than others has animated economic research for decades. Endogenous growth theory identifies knowledge accumulation and R\&D investment as primary engines of productivity \citep{romer1990,aghion1992}, while National Innovation Systems (NIS) scholarship emphasises the institutional architecture within which knowledge is generated, absorbed, and commercialised \citep{freeman1987,lundvall1992,nelson1993}. Yet a persistent regularity remains: countries at comparable levels of income, education, and R\&D expenditure often exhibit dramatically different innovation trajectories. This study investigates whether ethical governance---the degree to which a country's institutional environment operates transparently, accountably, and free from corruption---constitutes a structural determinant of innovation capacity. Corruption raises transaction costs for every actor in an innovation ecosystem: it distorts public research fund allocation, weakens intellectual property enforcement, depresses collaborative trust, and deters long-horizon investment \citep{mauro1995,meon2005,north1990}.
+
+This paper makes four original contributions to the empirical governance--innovation literature. To our knowledge, this is among the first panel studies to combine fixed-effects regression with lagged governance predictors and leak-free machine learning explainability for the ethics--innovation relationship across 152 economies. Second, we explicitly prevent target leakage---a methodological problem in machine learning applied to composite indices whereby sub-components of the outcome variable are used as predictors---by restricting the machine learning feature set to 25 indicators with zero definitional overlap with the Innovation pillar. Third, we resolve a mediation identification problem: prior work using the full WEF Institutions pillar as mediator faces circularity because that pillar incorporates ethics sub-pillars ($r=0.957$ with ethics). We instead use Government Efficiency ($r=0.874$) as a comparatively cleaner institutional mediator, revealing partial rather than full mediation. Fourth, we validate machine learning models using country-grouped and temporal holdout cross-validation, demonstrating generalisation to unseen countries and future years.
+
+The paper is organised as follows. Section~\ref{sec:literature} reviews the literature. Section~\ref{sec:framework} presents the theoretical framework and hypotheses. Section~\ref{sec:data} describes data and variables. Section~\ref{sec:methodology} details methodology, including leakage prevention and mediation identification. Section~\ref{sec:results} reports results. Section~\ref{sec:discussion} discusses findings and policy implications. Sections~\ref{sec:limitations} and~\ref{sec:future} address limitations and future research. Section~\ref{sec:conclusion} concludes.
+
+\section{Literature Review}
+\label{sec:literature}
+
+\subsection{Innovation, Institutions, and Economic Growth}
+
+Innovation occupies a foundational role in growth theory. \citet{schumpeter1934} conceived of it as the engine of capitalist dynamism through creative destruction. \citet{romer1990} demonstrated that purposive R\&D sustains permanently rising living standards; \citet{aghion1992} modelled technological improvement as the primary source of cross-country productivity divergence. \citet{porter1990} identified institutional sophistication as a national-level complement to firm-level innovation strategy. \citet{hall2010} established that R\&D investments are appropriability-dependent, making them acutely sensitive to governance: without enforceable property rights and transparent procurement, private returns to innovation fall below social optima. \citet{arrow1962} identified market failure in knowledge production---a failure that well-functioning institutions can mitigate. NIS Theory---developed by \citet{freeman1987}, \citet{lundvall1992}, and \citet{nelson1993}---conceptualises innovation as an emergent property of coordinated interactions whose efficiency is determined by institutional quality.
+
+\subsection{Corruption and Governance}
+
+\citet{mauro1995} established a robust negative correlation between corruption and investment rates. \citet{meon2005} showed corruption consistently reduces institutional effectiveness. \citet{acemoglu2012} demonstrate that inclusive institutions---characterised by rule of law and corruption-constrained governance---generate the incentive structures necessary for sustained investment. \citet{quah2011} documents how perceived corruption erodes public trust in state capacity, particularly damaging for innovation systems that depend on government as a credible R\&D partner. Corruption distorts R\&D grant allocation \citep{mauro1995}, suppresses intellectual property enforcement \citep{hall2010}, undermines collaborative trust \citep{lundvall1992,oecd2015}, and discourages patient capital \citep{north1990}.
+
+\subsection{Ethical Governance as Business Ethics Infrastructure}
+
+Corruption occupies a peculiar position in the business ethics literature: it is simultaneously an institutional failure and a moral one. While the institutional economics tradition \citep{north1990} frames corruption as a distortion of formal rules, a business ethics perspective locates the problem at the level of organisational and individual conduct \citep{freeman1984,donaldson1994}. Corrupt systems do not merely reflect weak institutions; they reflect the normalisation of dishonest behaviour among firms, officials, and market participants \citep{trevino2006,paine1994}. Treating corruption as an ethics infrastructure problem therefore shifts the analytical lens from structural deficiency to moral failure---and from national statistics to the daily choices of firms operating in corrupted environments \citep{argandona2001}.
+
+The business ethics implications of corruption are four-fold. First, corruption distorts fair competition by rewarding rent-seeking over productive investment \citep{mauro1995,meon2005}. Firms that secure contracts or licences through bribery displace more innovative competitors, eroding the meritocratic foundations of market systems \citep{freeman1984,argandona2001}. Second, corruption systematically weakens inter-organisational trust \citep{north1990,scott2001}. When firms cannot rely on impartial contract enforcement or transparent regulation, transaction costs rise, long-horizon investment becomes riskier, and the collaborative relationships that underpin innovation ecosystems become fragile \citep{donaldson1994}. Third, corruption creates hidden costs that fall disproportionately on honest firms: time spent navigating informal demands, legal exposure, reputational risk, and the opportunity cost of foregone investments that cannot be secured through legitimate channels \citep{paine1994}. Fourth, corruption in public procurement and regulatory processes disadvantages firms with strong ethical compliance cultures \citep{trevino2006,kaptein2008}, creating perverse selection pressures against responsible business conduct.
+
+The National Innovation Systems literature \citep{freeman1987,lundvall1992,nelson1993} implicitly relies on a backdrop of ethical governance: coordinated innovation requires that universities, firms, and government agencies interact through channels of legitimate, trust-based exchange. Where corruption pervades these channels, the coordinating function of institutions breaks down. Procurement fraud redirects public R\&D resources away from high-impact science; favouritism in licensing blocks technology diffusion; opacity in regulatory processes prevents firms from planning long-run innovation investment. Ethical governance, on this view, is not simply a positive externality for innovation---it is the enabling condition for the inter-firm and public-private relationships on which innovation systems depend.
+
+This framing has direct implications for how firms and managers understand their stake in governance quality. Ethical governance reduces uncertainty for firms by making regulatory outcomes predictable and contract enforcement reliable. Fair public procurement supports responsible competition by ensuring that innovation-based advantages are rewarded. Anti-corruption reforms improve trust in business--government relationships, reducing the informal costs of market participation. Innovation ecosystems---the clusters, university partnerships, and venture networks that generate breakthrough technologies---depend on moral legitimacy and institutional fairness as the foundations of sustained participation. The empirical analysis that follows treats ethical governance as this kind of business ethics infrastructure: not merely a governance indicator, but a structural precondition for trustworthy and productive market systems.
+
+\subsection{Methodological Gaps}
+
+Five gaps motivate this study. First, existing cross-country studies are predominantly cross-sectional, susceptible to omitted variable bias \citep{mauro1995,meon2005}. Second, to our knowledge no prior study has combined fixed-effects panel regression with lagged governance predictors and machine learning explainability for this topic. Third, target leakage---the use of outcome sub-components as machine learning predictors---has not been addressed in innovation--governance machine learning research. Fourth, the mediation identification problem---that the WEF Institutions pillar mechanically incorporates ethics sub-pillars---has not been diagnosed or corrected. Fifth, existing machine learning validation in governance studies relies exclusively on random cross-validation without country-grouped or temporal holdout tests, leaving generalisation unverified.
+
+\section{Theoretical Framework and Hypotheses}
+\label{sec:framework}
+
+\subsection{Institutional Theory}
+
+Institutional Theory, formalised by \citet{north1990} and \citet{scott2001}, holds that formal and informal rules constitute the primary environmental determinant of economic performance. Corruption represents a systematic deviation from rule-following that increases uncertainty, raises transaction costs, and reduces institutional legitimacy. Ethical governance reduces two specific barriers to innovation: it lowers the uncertainty premium on long-horizon investment \citep{porter1990}, and it reduces resource diversion through rent-seeking \citep{mauro1995}. Critically, Institutional Theory predicts that ethics works through institutional channels---improving government effectiveness, regulatory predictability, and rule of law---rather than through a direct technology-production mechanism. This predicts partial, not necessarily full, mediation through institutional quality.
+
+\subsection{National Innovation Systems Theory}
+
+NIS Theory, as developed by \citet{freeman1987}, \citet{lundvall1992}, and \citet{nelson1993}, conceptualises innovation as emerging from coordinated interactions among firms, universities, government agencies, and financial institutions. Ethical governance is the institutional substrate that determines the efficiency of these interactions. The partial mediation prediction of Institutional Theory is reinforced by NIS: ethics is associated with innovation both directly (by enabling knowledge-sharing trust and collaborative norms) and indirectly (by improving government capacity to allocate R\&D resources and enforce IP rights).
+
+\subsection{Hypotheses}
+
+From these theoretical foundations, four hypotheses follow:
+
+\begin{description}[leftmargin=1.2cm,style=nextline]
+\item[H1:] Countries with stronger ethical governance are associated with higher innovation performance, ceteris paribus.
+\item[H2:] Lagged ethical governance (year $t-1$) is positively associated with innovation performance (year $t$), establishing temporal precedence.
+\item[H3:] Institutional quality partially mediates the ethics--innovation association, with ethics retaining a residual direct association alongside the mediated pathway.
+\item[H4:] The ethics--innovation association is heterogeneous across country archetypes defined by their governance--innovation profiles.
+\end{description}
+
+\section{Data and Variables}
+\label{sec:data}
+
+\subsection{Data Source}
+
+The primary data source is the WEF GCI Historical Dataset covering 152 economies over 2007--2017 \citep{wef2017}, providing harmonised, internationally comparable indicators for institutional governance, infrastructure, human capital, technological readiness, market conditions, and innovation capacity. It has been widely used in cross-country panel studies of competitiveness and governance \citep{oecd2015,worldbank2017}. The analytical dataset comprises 1,524 country-year observations for contemporaneous models and 1,357 for lagged specifications. No imputation was performed.
+
+\subsection{Dependent Variable}
+
+Innovation Capacity is measured by the WEF GCI 12th Pillar: Innovation score (range 3.3--75.1, mean = 36.7, SD = 19.8). This composite aggregates capacity for innovation, quality of scientific research institutions, company spending on R\&D, university--industry collaboration in R\&D, government procurement of advanced technology, availability of scientists and engineers, and patent applications. All seven sub-components are explicitly excluded from the machine learning predictor set (Section~\ref{sec:targetleakage}).
+
+\subsection{Key Independent Variable}
+
+Ethical Governance is operationalised using the WEF GCI Sub-pillar 2: Ethics and Corruption, aggregating expert assessments of public trust in politicians, diversion of public funds, and favouritism in government decisions. Higher scores indicate stronger ethical governance. This sub-pillar is itself a component of the WEF 1st Pillar: Institutions ($r=0.957$). This definitional overlap must be accounted for in the mediation specification, as described in Section~\ref{sec:mediation}.
+
+\subsection{Mediator Variable}
+
+The WEF GCI Sub-pillar 4: Government Efficiency is used as the institutional mediator in Model M3b ($r=0.874$ with ethics, zero missing observations). We deliberately avoid the full 1st Pillar: Institutions as mediator because it incorporates the Ethics sub-pillar ($r=0.957$), the Corporate Ethics sub-pillar ($r=0.954$), and the Undue Influence sub-pillar ($r=0.932$), creating definitional circularity. Government Efficiency captures bureaucratic effectiveness, policy implementation, and waste reduction---distinct institutional dimensions that ethics can plausibly influence as a mediator. The full Institutions pillar result (M3c) is reported in parallel for comparison with prior literature.
+
+\subsection{Control Variables}
+
+Five pillar-level controls are included \citep{porter1990,hall2010,oecd2015}: (i) 5th Pillar: Higher Education and Training; (ii) 2nd Pillar: Infrastructure; (iii) 9th Pillar: Technological Readiness; (iv) 10th Pillar: Market Size; and (v) 8th Pillar: Financial Market Development. University--Industry Collaboration in R\&D is excluded from regression controls because it is a component of the 12th Pillar Innovation score.
+
+\subsection{Leak-Free Machine Learning Predictor Set}
+
+The 25 machine learning predictor variables satisfy two strict criteria: (a) zero missingness; and (b) zero definitional overlap with the 12th Pillar Innovation composite. The set comprises 11 governance/ethics indicators and 14 structural/economic/educational indicators. University--Industry R\&D Collaboration ($r=0.934$), Research Institution Quality ($r=0.940$), and Company R\&D Spending ($r=0.930$) are explicitly excluded as pillar components.
+
+\section{Methodology}
+\label{sec:methodology}
+
+\subsection{Fixed-Effects Panel Regression}
+
+The baseline econometric specification is a two-way fixed-effects model \citep{baltagi2005,wooldridge2010,hsiao2014}:
+
+\begin{equation}
+\mathrm{Innovation}_{it} = \beta_0 + \beta_1 \mathrm{Ethics}_{i,t-1} + \beta_2 \mathrm{Controls}_{it} + \mu_i + \lambda_t + \varepsilon_{it}.
+\label{eq:fe}
+\end{equation}
+
+Country fixed effects absorb all time-invariant unobserved heterogeneity; year fixed effects control for global shocks common to all countries. Ethics is lagged one year ($t-1$) in the primary specification to reduce reverse causation: ethics in the prior year predicts innovation in the current year. Standard errors are clustered at the country level \citep{wooldridge2010}. The Hausman test confirmed Fixed Effects over Random Effects ($p<0.05$) \citep{hsiao2014}. Four models are estimated: M1 (contemporaneous, five controls); M2 (lagged ethics, five controls---primary temporally lagged specification); M3b (lagged ethics plus Government Efficiency mediator---testing H3); and M3c (lagged ethics plus full Institutions pillar---reported for comparability with prior literature but noting definitional overlap).
+
+\subsection{Mediation Identification}
+\label{sec:mediation}
+
+A methodological contribution of this paper is the explicit identification of a mediator variable problem in the governance--innovation literature. The WEF 1st Pillar: Institutions correlates $r=0.957$ with the Ethics sub-pillar because it directly incorporates that sub-pillar as a component. Using the full Institutions pillar as a mediator therefore partly regresses ethics on itself, mechanically collapsing the ethics coefficient. We refer to this as the mediator-overlap problem and address it by using Government Efficiency ($r=0.874$ with ethics) as the primary institutional mediator in M3b. This specification tests whether ethics operates through a genuinely distinct institutional channel---government operational effectiveness---rather than through a definitionally overlapping composite. The partial-mediation result (ethics survives at $\beta=0.088$, $p=0.049$ in M3b) is therefore more interpretable than the apparent full mediation in M3c.
+
+\subsection{Target Leakage Prevention}
+\label{sec:targetleakage}
+
+Target leakage occurs when predictors are definitional components of the outcome variable. The WEF 12th Pillar Innovation score is a weighted composite of seven sub-indicators including university--industry R\&D collaboration ($r=0.934$), research institution quality ($r=0.940$), and company R\&D spending ($r=0.930$). Using these as machine learning predictors is circular, inflating $R^2$ to uninformative levels (0.98+). All seven Innovation pillar components are excluded from the machine learning predictor set. This reduces cross-validated $R^2$ from 0.982 to 0.847---a reduction that represents removal of circular variance.
+
+\subsection{Machine Learning and Validation Strategy}
+
+Random Forest \citep{breiman2001} (500 trees, square-root feature sampling, minimum leaf size 3) and XGBoost \citep{chen2016} (500 rounds, learning rate 0.05, max depth 5, subsampling 0.8) are evaluated using three cross-validation strategies to assess generalisation under progressively stricter conditions \citep{chernozhukov2018,athey2019}: (1) random 5-fold cross-validation as a baseline performance estimate; (2) country-grouped cross-validation (GroupKFold, $k=5$), where all observations from a given country appear only in training or testing, testing generalisation to unseen countries; and (3) temporal holdout, training on 2007--2014 ($n=1{,}109$) and testing on 2015--2017 ($n=415$), testing whether models trained on historical data predict future observations.
+
+\subsection{SHAP Explainability, Clustering, and Robustness}
+
+To provide transparent, feature-level explainability that corroborates the regression findings, SHAP values \citep{lundberg2017} are computed using TreeExplainer on a 500-observation subsample. Rather than treating SHAP as a primary result, we use it as a diagnostic tool: its findings corroborate the governance signal already established by the fixed-effects regression. Individual SHAP rankings are interpreted alongside collective governance-subset analysis to address multicollinearity-driven attribution diffusion. K-Means clustering ($k=4$, elbow criterion) is applied to country-level means of six standardised indicators \citep{hair2014}. Five robustness checks substitute alternative governance proxies in the lagged fixed-effects model (M2).
+
+\section{Empirical Results}
+\label{sec:results}
+
+\subsection{Descriptive Statistics}
+
+Table~\ref{tab:descriptive} presents descriptive statistics. The Innovation pillar (mean = 36.72, SD = 19.76) and Ethics sub-pillar (mean = 36.84, SD = 19.64) exhibit wide cross-national variation. Lagged ethics ($t-1$) and innovation ($t$) have Pearson correlation $r=0.718$ ($N=1{,}357$ pairs) \citep{wef2017}.
+
+\begin{table}[H]
+\centering
+\caption{Descriptive Statistics}
+\label{tab:descriptive}
+\small
+\begin{tabularx}{\textwidth}{Yrrrrrr}
+\toprule
+Variable & $N$ & Mean & SD & Min & Median & Max \\
+\midrule
+12th Pillar: Innovation (DV) & 1,524 & 36.72 & 19.76 & 3.33 & 36.58 & 75.06 \\
+Ethics \& Corruption Subpillar (IV) & 1,524 & 36.84 & 19.64 & 3.65 & 36.62 & 74.93 \\
+Ethics lag($t-1$) & 1,357 & 36.82 & 19.58 & 3.65 & 36.62 & 74.93 \\
+Govt. Efficiency Subpillar (mediator) & 1,524 & 37.05 & 19.45 & 3.66 & 36.97 & 74.97 \\
+1st Pillar: Institutions (for ref.) & 1,524 & 37.06 & 19.76 & 3.54 & 36.92 & 75.14 \\
+5th Pillar: Higher Education & 1,524 & 37.11 & 19.70 & 3.49 & 37.06 & 75.02 \\
+\bottomrule
+\end{tabularx}
+\begin{flushleft}
+\footnotesize \textit{Note.} All scores are WEF GCI composite indicators. SD = standard deviation. Mediator = Govt. Efficiency Subpillar used in M3b to avoid definitional overlap with Ethics IV (see Section~\ref{sec:mediation}). Source: WEF GCI Historical Dataset \citep{wef2017}.
+\end{flushleft}
+\end{table}
+
+\subsection{Fixed-Effects Panel Regression}
+
+Table~\ref{tab:fe} presents results from four fixed-effects specifications \citep{baltagi2005,wooldridge2010,hsiao2014}. Model M1 (contemporaneous ethics) yields $\beta=0.385$ ($t=7.64$, $p<0.001$), within-$R^2=0.356$. This specification does not establish temporal precedence.
+
+Model M2 (primary temporally lagged specification) yields $\beta=0.246$ ($t=5.20$, $p<0.001$), within-$R^2=0.299$. Ethics in year $t-1$ is positively associated with innovation in year $t$, supporting H1 and H2. This specification provides temporal precedence but does not constitute definitive causal identification; time-varying confounders remain a limitation (Section~\ref{sec:limitations}).
+
+Model M3b (Government Efficiency as a comparatively cleaner mediator) yields ethics $\beta=0.088$ ($t=1.97$, $p=0.049$) alongside Government Efficiency $\beta=0.317$ ($t=9.24$, $p<0.001$). This pattern is consistent with partial institutional mediation (H3): ethics attenuates substantially but retains a weak but statistically significant residual direct association alongside its government-efficiency-mediated pathway ($p=0.049$). The partial attenuation (0.246 to 0.088, a 64\% reduction) indicates Government Efficiency absorbs most but not all of the ethics--innovation association.
+
+Model M3c (full Institutions pillar, for prior-literature comparability) collapses ethics to $\beta=0.021$ ($p=0.632$). As discussed in Section~\ref{sec:mediation}, this apparent full absorption is partly a definitional artefact: the Institutions pillar directly incorporates the Ethics sub-pillar ($r=0.957$). The M3b result is the interpretable mediation specification.
+
+\begin{table}[H]
+\centering
+\caption{Fixed-Effects Regression Results (DV: 12th Pillar Innovation Score)}
+\label{tab:fe}
+\small
+\begin{tabularx}{\textwidth}{Yccc}
+\toprule
+Variable & M1: Contemp. & M2: Lagged (primary) & M3b: Govt. Eff. (cleaner) \\
+\midrule
+\multicolumn{4}{l}{\textit{A. Key Coefficients}} \\
+Ethics (contemp.) & 0.385*** (0.051) & --- & --- \\
+Ethics lag($t-1$) & --- & 0.246*** (0.047) & 0.088* (0.045) \\
+Government Efficiency & --- & --- & 0.317*** (0.034) \\
+\addlinespace
+\multicolumn{4}{l}{\textit{B. Control Variables}} \\
+Higher Education & --- & 0.572*** (0.092) & 0.451*** (0.085) \\
+Infrastructure & --- & 0.051 (0.078) & 0.013 (0.086) \\
+Technological Readiness & --- & 0.188* (0.081) & 0.143 (0.077) \\
+Market Size & --- & $-0.119$ (0.128) & $-0.137$ (0.125) \\
+Financial Market Dev. & --- & 0.101** (0.039) & 0.045 (0.037) \\
+\addlinespace
+\multicolumn{4}{l}{\textit{C. Model Fit}} \\
+Within-$R^2$ & 0.356 & 0.299 & 0.378 \\
+$N$ & 1,357 & 1,357 & 1,357 \\
+Country FE & Yes & Yes & Yes \\
+Year FE & Yes & Yes & Yes \\
+Clustered SE & Country & Country & Country \\
+\bottomrule
+\end{tabularx}
+\begin{flushleft}
+\footnotesize \textit{Note.} *** $p<0.001$; ** $p<0.01$; * $p<0.05$ (two-tailed). DV = 12th Pillar Innovation. M2 is the primary temporally lagged specification. M3b uses Government Efficiency ($r=0.874$ with ethics) as a comparatively cleaner institutional mediator than the full Institutions pillar ($r=0.957$). M3c result (ethics $\beta=0.021$, $p=0.632$) is reported in Appendix~\ref{app:appendixA}. Source: Authors' calculations \citep{wef2017}.
+\end{flushleft}
+\end{table}
+
+\subsection{Machine Learning Performance: Three Validation Strategies}
+
+Table~\ref{tab:mlperformance} presents machine learning performance across three cross-validation strategies. Under random 5-fold cross-validation, Random Forest achieves $R^2=0.847$ and XGBoost achieves 0.865. Critically, performance remains stable under country-grouped cross-validation (Random Forest: 0.844; XGBoost: 0.860), a drop of only 0.003 for Random Forest, indicating that the models generalise to countries not seen during training. The temporal holdout (train 2007--2014, test 2015--2017) yields Random Forest $R^2=0.904$ and XGBoost 0.919, confirming that governance--structural predictors trained on historical data maintain predictive validity for future years.
+
+\begin{table}[H]
+\centering
+\caption{ML Performance: Three Validation Strategies (Leak-Free, 25 Features)}
+\label{tab:mlperformance}
+\small
+\begin{tabularx}{\textwidth}{lcccY}
+\toprule
+Model & Random 5-Fold $R^2$ & Country-Grouped $R^2$ & Temporal Holdout $R^2$ & Interpretation \\
+\midrule
+Random Forest & 0.847 & 0.844 & 0.904 & Stable across all three; 0.003 drop country-grouped. \\
+XGBoost & 0.865 & 0.860 & 0.919 & Best performance; near-zero generalisation drop. \\
+\bottomrule
+\end{tabularx}
+\begin{flushleft}
+\footnotesize \textit{Note.} Country-grouped CV: GroupKFold ($k=5$). Temporal holdout: train 2007--2014 ($n=1{,}109$), test 2015--2017 ($n=415$). Leak-free predictor set excludes all Innovation pillar sub-components. Source: Authors' analysis \citep{wef2017}.
+\end{flushleft}
+\end{table}
+
+\subsection{SHAP Feature Attribution}
+
+Table~\ref{tab:shap} presents the top-15 SHAP-ranked features from the clean Random Forest. Production Process Sophistication dominates (mean $|\mathrm{SHAP}|=11.51$), followed by Intellectual Property Protection (1.82) and Education Quality (1.45). The Ethics sub-pillar individually ranks 25th (mean $|\mathrm{SHAP}|=0.08$). As detailed in Section~\ref{sec:methodology}, this low individual rank is a multicollinearity artefact: the Ethics sub-pillar correlates $r=0.975$ with Diversion of Public Funds and $r=0.921$ with both Firm Ethical Behaviour and Favouritism, causing Random Forest to distribute governance attribution across interchangeable proxies. Collectively, governance-only features achieve $R^2=0.678$ against non-governance features at $R^2=0.848$.
+
+\begin{table}[H]
+\centering
+\caption{Top-15 Features by Mean $|\mathrm{SHAP}|$ Value (Clean Random Forest)}
+\label{tab:shap}
+\scriptsize
+\begin{tabularx}{\textwidth}{rYrrlY}
+\toprule
+Rank & Feature & Mean $|\mathrm{SHAP}|$ & RF Importance & Category & Note \\
+\midrule
+1 & Production Process Sophistication & 11.51 & 0.751 & Business & Dominant individual predictor \\
+2 & Intellectual Property Protection & 1.82 & 0.046 & Governance & Absorbs partial ethics signal \\
+3 & Education Quality & 1.45 & 0.035 & Human Capital & \\
+4 & Value Chain Breadth & 0.97 & 0.026 & Business & \\
+5 & Management School Quality & 0.89 & 0.018 & Human Capital & \\
+6 & STEM Education Quality & 0.79 & 0.013 & Human Capital & \\
+7 & Firm Technology Absorption & 0.75 & 0.018 & Technology & \\
+8 & Nature of Competitive Advantage & 0.48 & 0.009 & Business & \\
+9 & Cluster Development & 0.46 & 0.008 & Business & \\
+10 & Venture Capital Availability & 0.46 & 0.008 & Finance & \\
+11 & GDP (PPP) & 0.38 & 0.007 & Economic & \\
+12 & Public Trust in Politicians & 0.26 & 0.006 & Governance & Ethics proxy ($r=0.921$) \\
+13 & Exports \% GDP & 0.25 & 0.006 & Economic & \\
+14 & Judicial Independence & 0.24 & 0.005 & Governance & Ethics proxy ($r=0.868$) \\
+15 & Property Rights & 0.22 & 0.007 & Governance & Ethics proxy ($r=0.845$) \\
+\bottomrule
+\end{tabularx}
+\begin{flushleft}
+\footnotesize \textit{Note.} Mean $|\mathrm{SHAP}|$ computed via TreeExplainer on a 500-observation random subsample \citep{lundberg2017}. Governance-only Random Forest (11 features): $R^2=0.678$. Ethics \& Corruption subpillar ranks 25th individually; low rank reflects attribution diffusion across correlated proxies ($r=0.921$--0.975). Bold in the original table denotes governance indicators.
+\end{flushleft}
+\end{table}
+
+\begin{figure}[H]
+\centering
+\includegraphics[width=0.95\linewidth]{figures/Fig1.png}
+\caption{SHAP Feature Importance - Clean Model (25 leak-free features). Five-fold cross-validated $R^2=0.847$. Red bars denote governance/ethics indicators. Source: Authors' analysis of WEF GCI data \citep{wef2017}.}
+\label{fig:shap}
+\end{figure}
+
+\subsection{Country Clustering}
+
+K-Means clustering ($k=4$, elbow criterion) identifies four country archetypes (Table~\ref{tab:clusters}, Fig.~\ref{fig:clusters}), supporting H4. Cluster A ($n=42$) comprises Innovation Leaders: mean innovation 61.5, ethics 54.8, mostly high-income OECD economies. Cluster B ($n=34$) comprises High-Ethics Mid-Innovators: ethics 52.1, innovation 40.5, suggesting governance is necessary but insufficient. Cluster C ($n=36$) comprises Low-Ethics Mid-Innovators: ethics 26.3, innovation 38.4, often through large market scale. Cluster D ($n=40$) comprises Low-Innovation Laggards: both lowest ethics (17.6) and innovation (12.8).
+
+\begin{table}[H]
+\centering
+\caption{Country Cluster Typology (K-Means $k=4$; Country-Level Means, 2007--2017)}
+\label{tab:clusters}
+\small
+\begin{tabularx}{\textwidth}{YrrrrY}
+\toprule
+Cluster & $N$ & Innovation & Ethics & Institutions & Policy implication \\
+\midrule
+A - Innovation Leaders & 42 & 61.5 (6.2) & 54.8 (11.1) & 57.4 (10.3) & Maintain governance; export institutional best practices \\
+B - High-Ethics Mid-Innovators & 34 & 40.5 (8.3) & 52.1 (6.6) & 50.4 (7.3) & Boost direct R\&D investment; governance foundation exists \\
+C - Low-Ethics Mid-Innovators & 36 & 38.4 (8.6) & 26.3 (8.4) & 28.3 (8.8) & Governance reform is strategic priority; innovation fragile \\
+D - Low-Innovation Laggards & 40 & 12.8 (5.7) & 17.6 (11.2) & 16.3 (9.5) & Foundational ethics and institution-building must precede market-enabling investment \\
+\bottomrule
+\end{tabularx}
+\begin{flushleft}
+\footnotesize \textit{Note.} SDs in parentheses. Clusters are ordered by descending Innovation score. Source: Authors' analysis \citep{wef2017}.
+\end{flushleft}
+\end{table}
+
+\begin{figure}[H]
+\centering
+\includegraphics[width=0.95\linewidth]{figures/Fig2.png}
+\caption{Country clusters - Ethics vs. Innovation (152 economies; K-Means $k=4$; country-level means, 2007--2017). Source: Authors' analysis \citep{wef2017}.}
+\label{fig:clusters}
+\end{figure}
+
+\subsection{Structural Break}
+
+Table~\ref{tab:structuralbreak} reports the ethics coefficient from M2 estimated for the full sample and two subperiods. The ethics association strengthens from $\beta=0.183$ ($p=0.056$) pre-2010 to $\beta=0.436$ ($p<0.001$) post-2010---a 2.4-fold amplification consistent with crisis-period strengthening of the institutional credibility premium \citep{north1990,acemoglu2012}.
+
+\begin{table}[H]
+\centering
+\caption{Structural Break: Ethics Coefficient Pre/Post-2010 (Lagged M2)}
+\label{tab:structuralbreak}
+\small
+\begin{tabularx}{\textwidth}{Yrrrrrr}
+\toprule
+Period & Ethics $\beta$ & SE & $t$ & $p$ & Sig. & Within-$R^2$ \\
+\midrule
+Full panel (2007--2017) & 0.246 & 0.047 & 5.20 & $<0.001$ & *** & 0.299 \\
+Pre-2010 (2007--2010) & 0.183 & 0.095 & 1.92 & 0.056 & $\dagger$ & 0.199 \\
+Post-2010 (2011--2017) & 0.436 & 0.070 & 6.25 & $<0.001$ & *** & 0.397 \\
+\bottomrule
+\end{tabularx}
+\begin{flushleft}
+\footnotesize \textit{Note.} *** $p<0.001$; $\dagger$ $p<0.10$. Five controls from M2 throughout. Ethics is lagged $t-1$. Source: Authors' calculations \citep{wef2017}.
+\end{flushleft}
+\end{table}
+
+\subsection{Robustness Checks}
+
+\begin{table}[H]
+\centering
+\caption{Robustness Checks: Alternative Governance Proxies (Lagged M2)}
+\label{tab:robustness}
+\small
+\begin{tabularx}{\textwidth}{Yrrrrrr}
+\toprule
+Governance proxy (lagged $t-1$) & $\beta$ & SE & $t$ & $p$ & Sig. & Within-$R^2$ \\
+\midrule
+Judicial Independence & 0.205 & 0.034 & 6.00 & $<0.001$ & *** & 0.313 \\
+Ethical Behaviour of Firms & 0.165 & 0.031 & 5.32 & $<0.001$ & *** & 0.298 \\
+Diversion of Public Funds & 0.152 & 0.034 & 4.47 & $<0.001$ & *** & 0.285 \\
+Favouritism in Govt. Decisions & 0.148 & 0.033 & 4.48 & $<0.001$ & *** & 0.291 \\
+Public Trust in Politicians & 0.143 & 0.031 & 4.61 & $<0.001$ & *** & 0.295 \\
+\bottomrule
+\end{tabularx}
+\begin{flushleft}
+\footnotesize \textit{Note.} All models include country and year fixed effects, clustered standard errors, and five controls from M2. Each row replaces the primary ethics proxy with the named alternative, lagged $t-1$. $N=1{,}357$ in all specifications. Source: Authors' calculations \citep{wef2017}.
+\end{flushleft}
+\end{table}
+
+\begin{figure}[H]
+\centering
+\includegraphics[width=0.90\linewidth]{figures/Fig3.png}
+\caption{Ethics at year $t-1$ vs. Innovation at year $t$ ($N=1{,}357$). OLS trend: $r=0.718$, $p<0.001$. Supports H2: prior-year ethics is positively associated with current-year innovation.}
+\label{fig:lagged}
+\end{figure}
+
+\FloatBarrier
+\clearpage
+\section{Discussion}
+\label{sec:discussion}
+
+\subsection{Theoretical Contributions}
+
+This study makes four contributions. To our knowledge, it is among the first panel studies to combine lagged fixed-effects governance regression with leak-free machine learning explainability for the ethics--innovation relationship. The leakage prevention contribution is directly methodological: by excluding Innovation pillar sub-components from the machine learning feature set, we demonstrate that prior $R^2$ values of 0.98+ reflected circular prediction, and that honest governance--structural predictors achieve 0.847.
+
+Second, the mediator-overlap diagnosis is a novel methodological contribution to governance panel research. We show that the WEF Institutions pillar mechanically incorporates the Ethics sub-pillar, creating definitional circularity when used as a mediator. Using Government Efficiency as a comparatively cleaner institutional mediator ($r=0.874$ vs. 0.957) reveals partial rather than full mediation: ethics attenuates from $\beta=0.246$ to $\beta=0.088$ ($p=0.049$), consistent with H3. This is a stronger finding than full mediation: it demonstrates that ethics appears to have both a weak but statistically significant residual direct association with innovation ($p=0.049$, borderline) and an indirect association through government operational effectiveness \citep{north1990,scott2001}.
+
+Third, the country-grouped and temporal cross-validation demonstrates that the machine learning model generalises to unseen countries ($R^2$ drop of only 0.003) and out-of-sample future years (temporal $R^2=0.904$--0.919). Fourth, the SHAP multicollinearity analysis \citep{lundberg2017} identifies why individual ethics proxy rankings are low despite governance collectively explaining $R^2=0.678$.
+
+\subsection{Policy and Business Implications}
+
+The partial mediation result reframes the ethics--innovation policy relationship: ethics is associated with innovation both directly (through the trust and transparency mechanisms theorised by NIS literature \citep{lundvall1992,nelson1993}) and indirectly through government efficiency improvement. This dual pathway means that building ethical business systems requires simultaneously addressing corruption as a market integrity failure (the direct ethics channel) and strengthening the public sector capacity that firms depend on (the government efficiency channel). Neither alone is sufficient. The Cluster B finding confirms that governance quality is a necessary but not sufficient condition for innovation leadership: these countries need direct R\&D investment, university--industry collaboration programmes, and technology diffusion policy alongside their governance advantage.
+
+Beyond national policy, these findings carry direct implications for firms and business managers. First, ethical governance reduces uncertainty for firms: when regulatory decisions are impartial and contract enforcement is reliable, firms can plan long-run innovation investment without building in informal risk premiums. Second, fair public procurement supports responsible competition by ensuring that innovative capability---rather than access to informal networks---determines market outcomes. Third, anti-corruption reforms improve trust in business--government relationships, lowering the transaction costs that divert managerial attention from productive activity. Fourth, innovation ecosystems---the clusters, university partnerships, and venture relationships through which breakthrough technologies emerge---depend on moral legitimacy and institutional fairness as the preconditions for sustained firm participation. Fifth, firms operating in corrupt environments face hidden costs that directly reduce innovation incentives: compliance exposure, reputational risk, and the displacement of honest competitors by rent-seekers all depress the expected returns to R\&D investment. These findings suggest that firms have a material interest in governance quality, and that corporate advocacy for ethical regulatory environments is not merely a matter of social responsibility but of competitive self-interest.
+
+\section{Limitations}
+\label{sec:limitations}
+
+Four limitations should be acknowledged. First, despite two-way fixed effects \citep{baltagi2005,wooldridge2010,hsiao2014} and lagged ethics, residual endogeneity remains. Time-varying country-specific confounders---reform episodes simultaneously improving governance and innovation---could inflate estimated ethics associations. Instrumental variable estimation (2SLS) or dynamic panel GMM would provide stronger causal identification \citep{wooldridge2010}.
+
+Second, all governance measures are WEF perception-based, derived from the Executive Opinion Survey \citep{wef2017}. Triangulation with the World Bank WGI \citep{worldbank2017} or Transparency International CPI \citep{transparency2017} in future work would strengthen validity. Third, the dataset ends in 2017; post-2017 digital governance developments and the COVID-19 institutional shock are unobserved. Fourth, national-level analysis obscures subnational heterogeneity particularly relevant in large federal economies.
+
+\section{Future Research Directions}
+\label{sec:future}
+
+Five extensions are identified. First, instrumental variable or dynamic panel GMM estimation would strengthen causal identification \citep{wooldridge2010}. Second, Double Machine Learning \citep{chernozhukov2018} or Causal Forests \citep{athey2019} would provide heterogeneous treatment effects. Third, incorporating WIPO patent applications or Global Innovation Index outputs would reduce WEF single-source dependency. Fourth, extending the analytical sample post-2017 would test whether institutional integrity provided innovation resilience comparable to the post-2008 amplification documented here. Fifth, regional-level panel analysis would address subnational heterogeneity.
+
+\section{Conclusion}
+\label{sec:conclusion}
+
+This study examined whether ethical governance is positively associated with national innovation capacity using a multi-method panel design on 152 economies over 2007--2017. The primary temporally lagged fixed-effects specification establishes that ethics in year $t-1$ is positively associated with innovation in year $t$ ($\beta=0.246$, $p<0.001$) \citep{baltagi2005,wooldridge2010,hsiao2014}. The mediation analysis using Government Efficiency as a comparatively cleaner institutional mediator reveals partial mediation: ethics attenuates to $\beta=0.088$ ($p=0.049$), consistent with H3 and Institutional Theory \citep{north1990,scott2001}. Leak-free machine learning models generalise to unseen countries ($R^2=0.844$) and future years ($R^2=0.904$) \citep{wef2017}. Governance collectively explains $R^2=0.678$ despite diffuse individual SHAP rankings \citep{lundberg2017}. Country clustering identifies four archetypes with distinct policy prescriptions, and the ethics--innovation association strengthened after 2008 \citep{acemoglu2012}.
+
+The aggregate message is that ethical governance and innovation investment are mutually reinforcing foundations of responsible and productive business systems. The countries sustaining long-run technological competitiveness invest simultaneously in R\&D capacity and in the institutional trust, regulatory transparency, and corruption-resistant governance that allow that capacity to translate into innovation outcomes. Ethical governance is not a constraint on economic dynamism; it is a partial but significant pathway to it.
+
+Four implications follow. \textit{Theoretically}, the partial-mediation result refines Institutional Theory and NIS Theory for the innovation context: ethics operates as both a direct trust-and-transparency mechanism and an indirect enabler of government operational capacity, rather than through either channel alone. \textit{Managerially}, firms operating in low-ethics environments face a quantifiable competitive distortion---rent-seeking rivals, inflated compliance costs, and unreliable contract enforcement---that gives corporate advocacy for clean governance a self-interested as well as normative basis. \textit{For policy}, the Cluster B finding (high ethics, mid innovation) indicates that anti-corruption reform is necessary but not sufficient: it must be paired with direct R\&D investment and university--industry collaboration policy to convert governance quality into innovation output. \textit{For future research}, the priority is strengthening causal identification (instrumental variables or dynamic panel GMM), triangulating governance measurement beyond the WEF Executive Opinion Survey, and testing whether the post-2010 amplification of the ethics--innovation association persists through the post-pandemic period.
+
+\bibliographystyle{apalike}
+\bibliography{sn-bibliography}
+
+\clearpage
+\appendix
+
+\section{Full Institutions Pillar as Mediator (M3c)}
+\label{app:appendixA}
+
+Model M3c substitutes the full WEF 1st Pillar: Institutions for Government Efficiency as the mediator in the lagged fixed-effects specification (Equation~\ref{eq:fe}), retaining lagged ethics and the same five controls as M2 and M3b. Because the Institutions pillar directly incorporates the Ethics sub-pillar ($r=0.957$), the Corporate Ethics sub-pillar ($r=0.954$), and the Undue Influence sub-pillar ($r=0.932$; see Section~\ref{sec:mediation}), this specification is reported for comparability with prior literature rather than as the primary mediation test. Ethics lag($t-1$) collapses to $\beta=0.021$ ($p=0.632$, not statistically significant), consistent with the definitional-circularity account in Section~\ref{sec:mediation}: regressing ethics-inclusive Institutions on ethics itself mechanically absorbs most of the coefficient, in contrast to the interpretable partial mediation obtained with Government Efficiency in M3b ($\beta=0.088$, $p=0.049$).
+
+\end{document}
