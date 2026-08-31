@@ -33,7 +33,7 @@
 \maketitle
 
 \begin{abstract}
-The rapid proliferation of Internet of Things (IoT) devices has expanded the attack surface of modern networks, making reliable and lightweight intrusion detection systems (IDS) a critical requirement. Conventional deep learning-based IDS typically perform flat multiclass classification, which struggles under severe class imbalance and does not reflect the asymmetric operational cost between a missed attack and a false alarm. This paper proposes HAGNet, a Hierarchical Attention-GRU Network that decomposes IoT intrusion detection into two specialised stages. In the first stage, a lightweight one-dimensional Convolutional Neural Network (1D-CNN) performs binary discrimination between benign and malicious traffic using an adaptively optimised decision threshold rather than the conventional 0.5 cut-off, prioritising attack recall for security-critical deployment. Traffic flagged as malicious is then routed to a second-stage Attention-augmented Gated Recurrent Unit (Attention-GRU) classifier, which performs fine-grained attack-type categorisation while benefiting from class-balanced training that mitigates the severe imbalance across attack families. A correlation-filtering, mutual-information, and LightGBM-based feature selection pipeline reduces the original 80-dimensional feature space to a compact subset prior to model training. The framework is evaluated on CICIoT2023, one of the largest publicly available IoT attack datasets, comprising 2{,}318{,}743 network flows spanning benign traffic and five attack categories, including denial-of-service, distributed denial-of-service, reconnaissance, botnet, and credential-based attacks. The experimental design shows that hierarchical routing reduces the computational burden on the fine-grained classifier while preserving detection sensitivity, and that adaptive threshold optimisation offers a principled, deployment-aware alternative to fixed-threshold rules for resource-constrained, edge-enabled IoT security systems.
+The rapid proliferation of Internet of Things (IoT) devices has expanded the attack surface of modern networks, making reliable and lightweight intrusion detection systems (IDS) a critical requirement. Conventional deep learning-based IDS typically perform flat multiclass classification, which struggles under severe class imbalance and does not reflect the asymmetric operational cost between a missed attack and a false alarm. This paper proposes HAGNet, a Hierarchical Attention-GRU Network that decomposes IoT intrusion detection into two specialised stages. In the first stage, a lightweight one-dimensional Convolutional Neural Network (1D-CNN) performs binary discrimination between benign and malicious traffic using an adaptively optimised decision threshold rather than the conventional 0.5 cut-off, prioritising attack recall for security-critical deployment. Traffic flagged as malicious is then routed to a second-stage Attention-augmented Gated Recurrent Unit (Attention-GRU) classifier, which performs fine-grained attack-type categorisation while benefiting from class-balanced training that mitigates the severe imbalance across attack families. A correlation-filtering and LightGBM gain-based feature selection pipeline reduces the original 80-dimensional feature space to a compact subset prior to model training. The framework is evaluated on CICIoT2023, one of the largest publicly available IoT attack datasets, comprising 2{,}318{,}743 network flows spanning benign traffic and five attack categories, including denial-of-service, distributed denial-of-service, reconnaissance, botnet, and credential-based attacks. The experimental design shows that hierarchical routing reduces the computational burden on the fine-grained classifier while preserving detection sensitivity, and that adaptive threshold optimisation offers a principled, deployment-aware alternative to fixed-threshold rules for resource-constrained, edge-enabled IoT security systems.
 
 \keywords{Internet of Things Security \and Intrusion Detection System \and Deep Learning \and Attention Mechanism \and Gated Recurrent Unit \and Convolutional Neural Network \and CICIoT2023 \and Hierarchical Classification \and Threshold Optimization.}
 \end{abstract}
@@ -52,7 +52,7 @@ This paper addresses these limitations by proposing \textbf{HAGNet}, a Hierarchi
     \item A \textbf{hierarchical two-stage intrusion detection} architecture separating binary anomaly screening from fine-grained attack categorisation, unlike conventional flat multiclass detectors.
     \item An \textbf{adaptive threshold optimisation} strategy that selects the operating threshold to maximise macro-F1 subject to a minimum attack-recall constraint, rather than the default 0.5 cut-off.
     \item A \textbf{hybrid deep architecture} combining a lightweight 1D-CNN for binary screening with an Attention-GRU for temporal, security-relevant attack characterisation.
-    \item A \textbf{feature optimisation pipeline} combining correlation filtering, mutual information, and LightGBM importance to reduce the CICIoT2023 feature space from 80 to a compact subset.
+    \item A \textbf{feature optimisation pipeline} combining correlation filtering and LightGBM gain-based importance to reduce the CICIoT2023 feature space from 80 to a compact subset.
 \end{enumerate}
 
 The remainder of this paper is organised as follows. Section~\ref{sec:related} reviews related work in IoT intrusion detection. Section~\ref{sec:methodology} presents the proposed HAGNet architecture and its constituent components. Section~\ref{sec:dataset} describes the CICIoT2023 dataset and the experimental setup. Section~\ref{sec:results} reports and discusses the experimental design and evaluation strategy. Section~\ref{sec:conclusion} concludes the paper and outlines directions for future work.
@@ -90,7 +90,7 @@ HAGNet is designed around a simple but effective principle: intrusion detection 
   arr/.style={-{Latex[length=2mm]}, thick}
 ]
 \node[box] (data) {CICIoT2023 network flows};
-\node[box, below=of data] (prep) {Cleaning, median imputation, standardisation\\ Correlation filtering + Mutual Information + LightGBM};
+\node[box, below=of data] (prep) {Cleaning, median imputation, standardisation\\ Correlation filtering ($>0.95$) + LightGBM importance};
 \node[boxg, below=of prep] (cnn) {Layer-1: Lightweight 1D-CNN\\ Binary detection (benign vs.\ attack)};
 \node[box, below=of cnn, fill=gray!10, draw=gray!60] (thr) {Adaptive threshold optimiser $\tau$};
 \node[boxr, below left=7mm and -4mm of thr] (benign) {Benign\\ (final decision)};
@@ -108,7 +108,7 @@ HAGNet is designed around a simple but effective principle: intrusion detection 
 
 \subsection{Data Preprocessing and Feature Selection}
 
-Prior to model training, raw CICIoT2023 flow records are cleaned by removing non-informative identifiers, converting infinite values to missing values, coercing attributes to numeric form, imputing missing values with the per-feature median, and standardising features to zero mean and unit variance. From the 80 remaining numerical features, a three-step pipeline is applied: (i) correlation-based filtering removes linearly redundant features; (ii) mutual information scoring ranks features by statistical dependence on the target label; and (iii) LightGBM feature importance, from a gradient-boosted tree ensemble, retains the top 40 features maximising predictive relevance while minimising redundancy. This 40-dimensional vector is the shared input for both Layer-1 and Layer-2 models, lowering memory footprint and inference latency relative to the full 80-feature representation.
+Prior to model training, raw CICIoT2023 flow records are cleaned by removing non-informative identifiers, converting infinite values to missing values, coercing attributes to numeric form, imputing missing values with the per-feature median, and standardising features to zero mean and unit variance. From the 80 remaining numerical features, a two-step pipeline is applied: (i) correlation-based filtering removes features with pairwise absolute correlation above 0.95; and (ii) a LightGBM gradient-boosted tree ensemble is trained on the correlation-filtered pool, and its gain-based feature importance is used to retain the top 40 features. Mutual information between each feature and the target label was also evaluated during pipeline development, but the deployed feature set is the one ranked by LightGBM importance. This 40-dimensional vector is the shared input for both Layer-1 and Layer-2 models, lowering memory footprint and inference latency relative to the full 80-feature representation.
 
 \subsection{Layer-1: Lightweight 1D-CNN Binary Detector}
 
@@ -121,7 +121,7 @@ where $x$ denotes the learned convolutional feature representation, $W$ and $b$ 
 
 \subsection{Adaptive Threshold Optimisation and Routing}
 
-Rather than committing to the conventional decision threshold of 0.5, HAGNet selects the operating threshold $\tau$ by sweeping candidate values over the validation set and choosing the value that maximises macro-F1 subject to a minimum acceptable attack-recall constraint. This reflects the practical reality of network defence, where the cost of a missed attack (false negative) substantially exceeds the cost of a false alarm on benign traffic (false positive). The resulting routing rule is:
+Rather than committing to the conventional decision threshold of 0.5, HAGNet selects the operating threshold $\tau$ by sweeping candidate values over the validation set and choosing, among thresholds satisfying benign recall $\geq 0.60$ and attack recall $\geq 0.90$, the value that maximises macro-F1 (falling back to unconstrained macro-F1 maximisation if no threshold satisfies both constraints). This reflects the practical reality of network defence, where the cost of a missed attack (false negative) substantially exceeds the cost of a false alarm on benign traffic (false positive). The resulting routing rule is:
 \begin{equation}
 \hat{y} =
 \begin{cases}
@@ -237,7 +237,7 @@ For Layer-1, additional emphasis is placed on attack recall and balanced accurac
 
 \subsection{Layer-1 Binary Intrusion Detection}
 
-The proposed HAGNet framework is evaluated on the CICIoT2023 test set, consisting of 347{,}812 network traffic flows, in two sequential stages: Layer-1 binary intrusion detection and Layer-2 attack classification. The hierarchical routing mechanism ensures that only malicious traffic is processed by the Attention-GRU classifier, reducing computational overhead while aiming to maintain high detection performance. The first stage distinguishes benign and malicious traffic using the lightweight 1D-CNN described in Table~\ref{tab:cnn}. Instead of using the conventional decision threshold of 0.5, the threshold is optimised over the validation set by maximising macro-F1 subject to a minimum acceptable attack-recall constraint, as illustrated schematically in Figure~\ref{fig:threshold}.
+The proposed HAGNet framework is evaluated on the CICIoT2023 test set, consisting of 347{,}812 network traffic flows, in two sequential stages: Layer-1 binary intrusion detection and Layer-2 attack classification. The hierarchical routing mechanism ensures that only malicious traffic is processed by the Attention-GRU classifier, reducing computational overhead while aiming to maintain high detection performance. The first stage distinguishes benign and malicious traffic using the lightweight 1D-CNN described in Table~\ref{tab:cnn}. Instead of using the conventional decision threshold of 0.5, the threshold is optimised over the validation set by maximising macro-F1 subject to the security constraints defined in Section~\ref{sec:methodology} (benign recall $\geq 0.60$, attack recall $\geq 0.90$), as illustrated schematically in Figure~\ref{fig:threshold}.
 
 \begin{figure}[!htb]
 \CenterFloatBoxes
@@ -249,9 +249,9 @@ The proposed HAGNet framework is evaluated on the CICIoT2023 test set, consistin
 \textbf{Layer} & \textbf{Config.} \\
 \midrule
 Input                   & $40 \times 1$ \\
-Conv1D                  & 16 filt., $k$=3 \\
+Conv1D                  & 16 filt., $k$=3, same \\
 Batch Norm.             & Yes \\
-Conv1D                  & 32 filt., $k$=3 \\
+Conv1D                  & 32 filt., $k$=3, same \\
 Glob.\ Avg.\ Pooling    & 1D \\
 Dense                   & 16 neurons \\
 Output                  & Sigmoid \\
@@ -398,7 +398,7 @@ These characteristics collectively aim to improve the scalability of HAGNet for 
 \section{Conclusion and Future Work}
 \label{sec:conclusion}
 
-This paper presented HAGNet (Hierarchical Attention-GRU Network), a two-stage deep learning framework for intelligent IoT intrusion detection using network flow features from the CICIoT2023 dataset. Unlike conventional flat multiclass intrusion detection systems, the proposed framework decomposes detection into binary anomaly detection followed by fine-grained attack categorisation, enabling each model to specialise in a simpler objective. The complete framework integrates data preprocessing, correlation-based feature reduction, mutual information and LightGBM feature selection, a lightweight 1D-CNN for malicious traffic screening, adaptive threshold optimisation, and an Attention-based GRU for attack classification.
+This paper presented HAGNet (Hierarchical Attention-GRU Network), a two-stage deep learning framework for intelligent IoT intrusion detection using network flow features from the CICIoT2023 dataset. Unlike conventional flat multiclass intrusion detection systems, the proposed framework decomposes detection into binary anomaly detection followed by fine-grained attack categorisation, enabling each model to specialise in a simpler objective. The complete framework integrates data preprocessing, correlation-based feature reduction, LightGBM gain-based feature selection, a lightweight 1D-CNN for malicious traffic screening, adaptive threshold optimisation, and an Attention-based GRU for attack classification.
 
 The hierarchical routing strategy reduces overhead by forwarding only malicious traffic to the second-stage classifier, suiting edge-enabled IoT environments. Adaptive threshold optimisation further prioritises security-sensitive detection over a fixed threshold, addressing limitations in recent literature, including class imbalance, inter-class confusion, and the lack of scalable hierarchical IDS architectures~\cite{ref1,ref2,ref5}. Overall, HAGNet shows that lightweight binary screening, attention-guided temporal learning, and adaptive routing offer a scalable direction for next-generation IoT intrusion detection.
 
