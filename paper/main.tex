@@ -43,7 +43,7 @@ The rapid proliferation of Internet of Things (IoT) devices has expanded the att
 
 The Internet of Things (IoT) has evolved from a niche collection of embedded sensors into a pervasive computing fabric that underpins smart homes, industrial automation, healthcare monitoring, and critical infrastructure. This growth has not been matched by a proportional improvement in device-level security: most IoT endpoints are constrained in memory, processing power, and energy budget, which discourages heavyweight cryptographic and monitoring mechanisms at the device itself. Security responsibility is therefore increasingly pushed toward the network layer, where an Intrusion Detection System (IDS) inspects traffic flows for signatures of malicious behaviour. The diversity and scale of modern IoT attacks--ranging from volumetric denial-of-service floods to slow, stealthy reconnaissance and credential-guessing attempts--make this substantially harder than intrusion detection in conventional enterprise networks.
 
-Early IDS research relied on signature-based and classical machine learning techniques trained on handcrafted statistical features of network flows. While inexpensive, these approaches generalise poorly to unseen attack patterns and require substantial manual feature engineering. Deep learning shifted this paradigm: convolutional neural networks (CNNs) automatically learn discriminative spatial patterns from flow-based features, while recurrent architectures such as LSTM and GRUs capture sequential dependencies across packets or time windows. More recently, attention mechanisms have been layered on top of recurrent backbones so the network can weight the most informative temporal representations rather than treating every step equally.
+Early IDS research relied on signature-based and classical machine learning techniques trained on handcrafted statistical features of network flows, such as those in NSL-KDD~\cite{ref17} and CICIDS2017~\cite{ref18}. While inexpensive, these approaches generalise poorly to unseen attack patterns and require substantial manual feature engineering. Deep learning shifted this paradigm: convolutional neural networks (CNNs) automatically learn discriminative spatial patterns from flow-based features, while recurrent architectures such as LSTM and GRUs~\cite{ref12} capture sequential dependencies across packets or time windows. More recently, attention mechanisms~\cite{ref13} have been layered on top of recurrent backbones so the network can weight the most informative temporal representations rather than treating every step equally.
 
 Despite this progress, most deep learning-based IDS proposals still treat intrusion detection as a single, flat multiclass classification problem, with two shortcomings that are particularly pronounced in IoT contexts. First, IoT attack datasets are characteristically imbalanced--high-volume attack types (e.g., denial-of-service floods) coexist with rare but security-critical families (e.g., botnet recruitment or credential brute-forcing) that may account for less than one percent of samples--so a classifier optimised for overall accuracy is naturally biased toward the majority classes and under-detects the minority, often more dangerous, attack types. Second, flat classification does not reflect the asymmetric cost of network defence: a missed attack (false negative) is typically far more costly than a false alarm on benign traffic (false positive), yet most classifiers are trained and thresholded without encoding this asymmetry.
 
@@ -62,11 +62,11 @@ The remainder of this paper is organised as follows. Section~\ref{sec:related} r
 
 Research on IoT intrusion detection has progressed along several overlapping tracks: classical machine learning, deep sequential models, hybrid architectures, and, more recently, attention-based and hierarchical designs.
 
-\textbf{Classical and survey-based approaches.} Al-Hawawreh et al.~\cite{ref1} systematically review intelligent approaches toward Industrial IoT intrusion detection, highlighting dataset heterogeneity, feature redundancy, and scarce attack samples. Broader surveys~\cite{ref2} similarly note that many models are validated on outdated or overly simplistic datasets, limiting applicability to modern attack landscapes. Complementary reviews of AI techniques for IoT intrusion detection~\cite{ref3} document a shift toward learning-based pipelines, noting that most surveyed systems classify traffic in a single stage without regard to cost asymmetry.
+\textbf{Classical and survey-based approaches.} Al-Hawawreh et al.~\cite{ref1} systematically review intelligent approaches toward Industrial IoT intrusion detection, highlighting dataset heterogeneity, feature redundancy, and scarce attack samples, a gap partially addressed by IoT-specific botnet datasets such as BoT-IoT~\cite{ref19}. Broader surveys~\cite{ref2} similarly note that many models are validated on outdated or overly simplistic datasets, limiting applicability to modern attack landscapes. Complementary reviews of AI techniques for IoT intrusion detection~\cite{ref3} document a shift toward learning-based pipelines, noting that most surveyed systems classify traffic in a single stage without regard to cost asymmetry.
 
 \textbf{Deep learning-based detectors.} Convolutional architectures are widely applied to IoT traffic classification for their ability to extract local, spatially-correlated feature interactions from flow statistics~\cite{ref4}. Sequential models, notably LSTM and GRU networks, capture temporal dependencies, since attacks such as slow port scans or botnet recruitment manifest across consecutive flows rather than within a single flow. Hybrid CNN--GRU architectures~\cite{ref5} combine both families and report improved performance over either in isolation, but typically retain a flat multiclass output layer and inherit the imbalance sensitivity.
 
-\textbf{Attention-based and hierarchical designs.} Attention-based deep learning models~\cite{ref6} allow IoT IDS models to adaptively weight discriminative temporal representations, improving discrimination between attack categories with overlapping signatures. Reinforcement-learning-driven intrusion detection studies~\cite{ref7} report best practices for adaptive decision-making in dynamic environments, including strategies re-tuned without full retraining. Reviews of deep learning for IoT cyber-threat detection~\cite{ref8} converge on two recommendations: hierarchical decomposition of the detection task, and lightweight architectures for constrained edge devices. Wider surveys~\cite{ref9,ref10} identify CICIoT2023 as one of the most comprehensive and realistic datasets for evaluating next-generation IDS architectures.
+\textbf{Attention-based and hierarchical designs.} Attention-based deep learning models~\cite{ref6} allow IoT IDS models to adaptively weight discriminative temporal representations, improving discrimination between attack categories with overlapping signatures. Reinforcement-learning-driven intrusion detection studies~\cite{ref7} report best practices for adaptive decision-making in dynamic environments, including strategies re-tuned without full retraining. Reviews of deep learning for IoT cyber-threat detection~\cite{ref4} converge on two recommendations: hierarchical decomposition of the detection task, and lightweight architectures for constrained edge devices. Wider surveys~\cite{ref9,ref10} identify CICIoT2023 as one of the most comprehensive and realistic datasets for evaluating next-generation IDS architectures.
 
 \textbf{Positioning of this work.} Three properties are directly relevant to IoT deployment: an explicit binary screening stage, an attention mechanism, and hierarchical structure. Most existing approaches address at most one or two in isolation (a qualitative comparison is given later in Table~\ref{tab:qualitative}). HAGNet is, to our knowledge, the first design to jointly combine binary screening, attention-guided attack categorisation, and hierarchical routing with a security-oriented, adaptively optimised decision threshold.
 
@@ -108,7 +108,7 @@ HAGNet is designed around a simple but effective principle: intrusion detection 
 
 \subsection{Data Preprocessing and Feature Selection}
 
-Prior to model training, raw CICIoT2023 flow records are cleaned by removing non-informative identifiers, converting infinite values to missing values, coercing attributes to numeric form, imputing missing values with the per-feature median, and standardising features to zero mean and unit variance. From the 80 remaining numerical features, a two-step pipeline is applied: (i) correlation-based filtering removes features with pairwise absolute correlation above 0.95; and (ii) a LightGBM gradient-boosted tree ensemble is trained on the correlation-filtered pool, and its gain-based feature importance is used to retain the top 40 features. Mutual information between each feature and the target label was also evaluated during pipeline development, but the deployed feature set is the one ranked by LightGBM importance. This 40-dimensional vector is the shared input for both Layer-1 and Layer-2 models, lowering memory footprint and inference latency relative to the full 80-feature representation.
+Prior to model training, raw CICIoT2023 flow records are cleaned by removing non-informative identifiers, converting infinite values to missing values, coercing attributes to numeric form, imputing missing values with the per-feature median, and standardising features to zero mean and unit variance. From the 80 remaining numerical features, a two-step pipeline is applied: (i) correlation-based filtering removes features with pairwise absolute correlation above 0.95; and (ii) a LightGBM~\cite{ref14} gradient-boosted tree ensemble is trained on the correlation-filtered pool, and its gain-based feature importance is used to retain the top 40 features. Mutual information between each feature and the target label was also evaluated during pipeline development, but the deployed feature set is the one ranked by LightGBM importance. This 40-dimensional vector is the shared input for both Layer-1 and Layer-2 models, lowering memory footprint and inference latency relative to the full 80-feature representation.
 
 \subsection{Layer-1: Lightweight 1D-CNN Binary Detector}
 
@@ -134,7 +134,7 @@ where $p = P(y=1\mid x)$ is the Layer-1 output probability. Flows routed to Laye
 
 \subsection{Layer-2: Attention-GRU Attack Classifier}
 
-Flows routed by the threshold optimiser are passed to a second-stage classifier that identifies the specific attack family. This stage uses a GRU to process the feature representation as a sequence of hidden states $h_1, \ldots, h_T$, followed by an additive attention mechanism emphasising the most discriminative states rather than treating them uniformly. The attention weight assigned to hidden state $t$ is computed as
+Flows routed by the threshold optimiser are passed to a second-stage classifier that identifies the specific attack family. This stage uses a GRU~\cite{ref12} to process the feature representation as a sequence of hidden states $h_1, \ldots, h_T$, followed by an additive attention mechanism~\cite{ref13} emphasising the most discriminative states rather than treating them uniformly. The attention weight assigned to hidden state $t$ is computed as
 \begin{equation}
 \alpha_t = \frac{\exp(e_t)}{\sum_{k=1}^{T} \exp(e_k)},
 \label{eq:attention}
@@ -151,7 +151,7 @@ and is passed through a dense ReLU layer followed by a softmax output layer prod
 
 \subsection{CICIoT2023 Dataset}
 
-The proposed HAGNet framework is evaluated using the CICIoT2023 benchmark dataset~\cite{ref11}, one of the largest publicly available datasets for IoT intrusion detection, simulating realistic IoT environments with benign traffic and diverse cyberattacks generated from multiple smart devices and protocols. Compared with earlier datasets such as NSL-KDD and CICIDS2017, CICIoT2023 offers significantly larger traffic diversity and better represents modern IoT attack scenarios~\cite{ref9,ref10}.
+The proposed HAGNet framework is evaluated using the CICIoT2023 benchmark dataset~\cite{ref11}, one of the largest publicly available datasets for IoT intrusion detection, simulating realistic IoT environments with benign traffic and diverse cyberattacks generated from multiple smart devices and protocols. Compared with earlier datasets such as NSL-KDD~\cite{ref17} and CICIDS2017~\cite{ref18}, CICIoT2023 offers significantly larger traffic diversity and better represents modern IoT attack scenarios~\cite{ref9,ref10}.
 
 For this study, six traffic categories were selected, comprising one benign class and five representative attack types. After merging all traffic flows, the final dataset contained 2{,}318{,}743 network instances with 80 numerical features following preprocessing (Table~\ref{tab:traffic}).
 
@@ -230,7 +230,7 @@ The performance of HAGNet is assessed using standard classification metrics deri
 \text{Recall} = \frac{TP}{TP + FN}, \qquad
 F1 = 2 \times \frac{\text{Precision} \times \text{Recall}}{\text{Precision} + \text{Recall}}.
 \end{equation}
-For Layer-1, additional emphasis is placed on attack recall and balanced accuracy, since missing malicious traffic poses a greater security risk than incorrectly flagging benign traffic; the threshold satisfying the predefined security constraint (Section~\ref{sec:methodology}) is selected for deployment. The malicious attack classes also exhibit substantial imbalance, particularly for the Mirai and Dictionary Brute Force categories. Rather than oversampling the entire dataset, balancing is performed only for Layer-2 attack classification: minority classes are resampled to match the largest attack category, creating a balanced training distribution while preserving the original validation and test sets, enabling the Attention-GRU to learn equally from all attack categories without biasing the evaluation.
+For Layer-1, additional emphasis is placed on attack recall and balanced accuracy, since missing malicious traffic poses a greater security risk than incorrectly flagging benign traffic; the threshold satisfying the predefined security constraint (Section~\ref{sec:methodology}) is selected for deployment. The malicious attack classes also exhibit substantial imbalance, particularly for the Mirai and Dictionary Brute Force categories. Rather than oversampling the entire dataset, balancing is performed only for Layer-2 attack classification: minority classes are resampled to match the largest attack category, creating a balanced training distribution while preserving the original validation and test sets, enabling the Attention-GRU to learn equally from all attack categories without biasing the evaluation. Effective-number-based class re-weighting~\cite{ref15} was also evaluated as an alternative to resampling during development, but per-class oversampling was retained as it gave more consistent class exposure within each mini-batch.
 
 \section{Results and Discussion}
 \label{sec:results}
@@ -389,7 +389,7 @@ Transformer IDS& \ding{55} & \ding{51}    & \ding{55} & \ding{55} \\
 \end{tabular}
 \end{table}
 
-Recent hybrid CNN--GRU models show strong performance for IoT intrusion detection, while surveys emphasise hierarchical learning and lightweight deployment as future directions~\cite{ref6,ref7,ref8}. HAGNet integrates both, suiting resource-constrained IoT environments.
+Recent hybrid CNN--GRU models show strong performance for IoT intrusion detection, while surveys emphasise hierarchical learning and lightweight deployment as future directions~\cite{ref6,ref7,ref4}. HAGNet integrates both, suiting resource-constrained IoT environments.
 
 Decomposing intrusion detection into two sequential tasks offers practical advantages over flat multiclass architectures. First, the Layer-1 CNN rapidly filters benign traffic, allowing most flows to be processed with a lightweight model. Second, the Attention-GRU focuses exclusively on malicious traffic, reducing the effect of class imbalance and improving discrimination between similar attack categories. Third, adaptive threshold optimisation prioritises attack recall instead of an arbitrary probability threshold.
 
@@ -400,20 +400,20 @@ These characteristics collectively aim to improve the scalability of HAGNet for 
 
 This paper presented HAGNet (Hierarchical Attention-GRU Network), a two-stage deep learning framework for intelligent IoT intrusion detection using network flow features from the CICIoT2023 dataset. Unlike conventional flat multiclass intrusion detection systems, the proposed framework decomposes detection into binary anomaly detection followed by fine-grained attack categorisation, enabling each model to specialise in a simpler objective. The complete framework integrates data preprocessing, correlation-based feature reduction, LightGBM gain-based feature selection, a lightweight 1D-CNN for malicious traffic screening, adaptive threshold optimisation, and an Attention-based GRU for attack classification.
 
-The hierarchical routing strategy reduces overhead by forwarding only malicious traffic to the second-stage classifier, suiting edge-enabled IoT environments. Adaptive threshold optimisation further prioritises security-sensitive detection over a fixed threshold, addressing limitations in recent literature, including class imbalance, inter-class confusion, and the lack of scalable hierarchical IDS architectures~\cite{ref1,ref2,ref5}. Overall, HAGNet shows that lightweight binary screening, attention-guided temporal learning, and adaptive routing offer a scalable direction for next-generation IoT intrusion detection.
+The hierarchical routing strategy reduces overhead by forwarding only malicious traffic to the second-stage classifier, suiting edge-enabled IoT environments. Adaptive threshold optimisation further prioritises security-sensitive detection over a fixed threshold, addressing limitations including class imbalance, inter-class confusion, and the lack of scalable hierarchical IDS architectures~\cite{ref1,ref2,ref5}. Overall, HAGNet shows that lightweight binary screening, attention-guided temporal learning, and adaptive routing offer a scalable direction for next-generation IoT intrusion detection.
 
 \noindent\textbf{Future work.} Several directions can further enhance the framework's practical applicability:
 \begin{itemize}
-    \item \textbf{Transformer-based sequential learning:} replace the GRU with lightweight Transformer or temporal-attention models for long-range dependencies~\cite{ref4}.
-    \item \textbf{Federated intrusion detection:} a privacy-preserving federated HAGNet enabling collaborative learning across distributed IoT devices without sharing raw traffic~\cite{ref3}.
-    \item \textbf{Explainable AI integration:} SHAP or attention-visualisation to assist analysts in interpreting attack decisions.
+    \item \textbf{Transformer-based sequential learning:} replace the GRU with a lightweight Transformer~\cite{ref20} or temporal-attention model for long-range dependencies~\cite{ref4}.
+    \item \textbf{Federated intrusion detection:} a privacy-preserving federated HAGNet, following the federated averaging paradigm~\cite{ref21}, enabling collaborative learning across distributed IoT devices without sharing raw traffic~\cite{ref3}.
+    \item \textbf{Explainable AI integration:} SHAP~\cite{ref22} or attention-visualisation to assist analysts in interpreting attack decisions.
     \item \textbf{Real-time edge deployment:} optimise the CNN for hardware such as Raspberry Pi, NVIDIA Jetson, or TinyML accelerators.
     \item \textbf{Generalised attack detection:} extend the framework to zero-day attacks via self-supervised or continual learning.
 \end{itemize}
 These extensions would improve the robustness, explainability, and deployment readiness of hierarchical IDS for future IoT infrastructures.
 
-\begin{thebibliography}{11}
-\setlength{\itemsep}{-1pt}
+\begin{thebibliography}{22}
+\setlength{\itemsep}{-2.5pt}
 
 \bibitem{ref1}
 Al-Hawawreh, M., Sitnikova, E.: Intelligent approaches toward intrusion detection systems for industrial internet of things: a systematic comprehensive review. J. Netw. Comput. Appl. \textbf{215}, 103444 (2023)
@@ -428,25 +428,52 @@ Saied, M., Guirguis, S., Madbouly, M.: Review of artificial intelligence for enh
 Aldhaheri, A., Alwahedi, F., Ferrag, M.A., Battah, A.: Deep learning for cyber threat detection in IoT networks: a review. Internet Things Cyber-Phys. Syst. \textbf{4}, 110--128 (2024)
 
 \bibitem{ref5}
-A hybrid CNN--GRU deep learning model for IoT network intrusion detection. Future Internet (2025)
+Sagu, A., Gill, N.S., Gulia, P., Alduaiji, N., Shukla, P.K., Shah, M.A.: Advances to IoT security using a GRU-CNN deep learning model trained on SUCMO algorithm. Sci. Rep. \textbf{15}, 99574 (2025)
 
 \bibitem{ref6}
-Attention-based deep learning models for intelligent IoT intrusion detection (2024)
+Ghosh, K.P., Hasan, M., Robin, M.T.I., Hossain, M.A., Islam, M.S.: A novel deep learning framework with temporal attention convolutional networks for intrusion detection in IoT and IIoT networks. Sci. Rep. \textbf{15}, 32697 (2025)
 
 \bibitem{ref7}
 Cevallos Moreno, J.F., Rizzardi, A., Sicari, S., Coen-Porisini, A.: Deep reinforcement learning for intrusion detection in Internet of Things: best practices, lessons learnt, and open challenges. Comput. Netw. \textbf{236}, 110016 (2023)
-
-\bibitem{ref8}
-Deep learning for cyber threat detection in IoT networks: a review. ScienceDirect (2024)
 
 \bibitem{ref9}
 Meziane, H., Ouerdi, N.: A survey on performance evaluation of artificial intelligence algorithms for improving IoT security systems. Sci. Rep. \textbf{13}, 21255 (2023)
 
 \bibitem{ref10}
-Comprehensive IoT IDS survey discussing CICIoT2023 and modern benchmark datasets. J. Comput. Theor. Appl. (2024)
+Intrusion detection in the Internet of Things: a comprehensive review of techniques, architectures, datasets, and emerging trends. Sensors \textbf{26}(11), 3405 (2026)
 
 \bibitem{ref11}
 Neto, E.C.P., Dadkhah, S., Ferreira, R., Zohourian, A., Lu, R., Ghorbani, A.A.: CICIoT2023: a real-time dataset and benchmark for large-scale attacks in IoT environment. Sensors \textbf{23}(13), 5941 (2023)
+
+\bibitem{ref12}
+Cho, K., van Merri\"enboer, B., Gulcehre, C., Bahdanau, D., Bougares, F., Schwenk, H., Bengio, Y.: Learning phrase representations using RNN encoder-decoder for statistical machine translation. In: Proc. EMNLP, pp.\ 1724--1734 (2014)
+
+\bibitem{ref13}
+Bahdanau, D., Cho, K., Bengio, Y.: Neural machine translation by jointly learning to align and translate. In: Proc. ICLR (2015)
+
+\bibitem{ref14}
+Ke, G., Meng, Q., Finley, T., Wang, T., Chen, W., Ma, W., Ye, Q., Liu, T.Y.: LightGBM: a highly efficient gradient boosting decision tree. In: Advances in Neural Information Processing Systems 30 (NeurIPS), pp.\ 3146--3154 (2017)
+
+\bibitem{ref15}
+Cui, Y., Jia, M., Lin, T.Y., Song, Y., Belongie, S.: Class-balanced loss based on effective number of samples. In: Proc. IEEE/CVF CVPR, pp.\ 9268--9277 (2019)
+
+\bibitem{ref17}
+Tavallaee, M., Bagheri, E., Lu, W., Ghorbani, A.A.: A detailed analysis of the KDD CUP 99 data set. In: Proc. IEEE Symp.\ Computational Intelligence for Security and Defense Applications (CISDA), pp.\ 1--6 (2009)
+
+\bibitem{ref18}
+Sharafaldin, I., Lashkari, A.H., Ghorbani, A.A.: Toward generating a new intrusion detection dataset and intrusion traffic characterization. In: Proc. ICISSP, pp.\ 108--116 (2018)
+
+\bibitem{ref19}
+Koroniotis, N., Moustafa, N., Sitnikova, E., Turnbull, B.: Towards the development of realistic botnet dataset in the Internet of Things for network forensic analytics: Bot-IoT dataset. Future Gener.\ Comput.\ Syst. \textbf{100}, 779--796 (2019)
+
+\bibitem{ref20}
+Vaswani, A., Shazeer, N., Parmar, N., Uszkoreit, J., Jones, L., Gomez, A.N., Kaiser, {\L}., Polosukhin, I.: Attention is all you need. In: Advances in Neural Information Processing Systems 30 (NeurIPS), pp.\ 5998--6008 (2017)
+
+\bibitem{ref21}
+McMahan, B., Moore, E., Ramage, D., Hampson, S., y Arcas, B.A.: Communication-efficient learning of deep networks from decentralized data. In: Proc. AISTATS, pp.\ 1273--1282 (2017)
+
+\bibitem{ref22}
+Lundberg, S.M., Lee, S.I.: A unified approach to interpreting model predictions. In: Advances in Neural Information Processing Systems 30 (NeurIPS), pp.\ 4765--4774 (2017)
 
 \end{thebibliography}
 
