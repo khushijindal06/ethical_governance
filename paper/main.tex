@@ -280,23 +280,25 @@ Output                  & Sigmoid \\
 \end{floatrow}
 \end{figure}
 
-The optimised threshold enables the CNN to prioritise malicious traffic detection while maintaining acceptable benign recognition, which is essential for practical intrusion detection systems where false negatives are more critical than false positives. Table~\ref{tab:layer1-results} reports Layer-1 performance at the optimised threshold: 94\% attack recall at 90\% benign precision, for 95\% overall accuracy. The confusion matrix, ordered (Benign, Attack), is $\begin{pmatrix} 26{,}823 & 722 \\ 3{,}046 & 47{,}142 \end{pmatrix}$: a 2.6\% false-positive rate and a 6.1\% false-negative rate, the errors the security constraint in Section~\ref{sec:methodology} is designed to keep low.
+Table~\ref{tab:layer1-results} contrasts Layer-1 performance at a low, unoptimised initial threshold (0.05) against the optimised threshold $\tau$. At the low threshold, the model over-flags benign traffic (benign recall only 0.53; confusion matrix $\begin{pmatrix} 14{,}676 & 12{,}869 \\ 613 & 49{,}575 \end{pmatrix}$, ordered Benign/Attack), giving 83\% accuracy. Optimising $\tau$ raises benign recall to 0.97 while attack recall falls only slightly, from 0.99 to 0.94, cutting false positives by 94\% (12{,}869 $\to$ 722) at the cost of 2{,}433 additional false negatives (613 $\to$ 3{,}046); confusion matrix $\begin{pmatrix} 26{,}823 & 722 \\ 3{,}046 & 47{,}142 \end{pmatrix}$. Overall accuracy rises from 83\% to 95\%, and macro-F1 from 0.78 to 0.95, confirming that threshold optimisation is essential rather than incidental to this architecture.
 
 \begin{table}[!htb]
 \centering
-\caption{Layer-1 binary detection performance on the CICIoT2023 test set at the optimised threshold $\tau$.}
+\caption{Layer-1 binary detection performance on the CICIoT2023 test set, before and after threshold optimisation (support: Benign 27{,}545; Attack 50{,}188; total 77{,}733).}
 \label{tab:layer1-results}
 \small
-\begin{tabular}{lcccc}
+\begin{tabular}{lcccccc}
 \toprule
-\textbf{Class} & \textbf{Precision} & \textbf{Recall} & \textbf{F1-score} & \textbf{Support} \\
+& \multicolumn{3}{c}{\textbf{Threshold = 0.05}} & \multicolumn{3}{c}{\textbf{Optimised $\tau$}} \\
+\cmidrule(lr){2-4}\cmidrule(lr){5-7}
+\textbf{Class} & P & R & F1 & P & R & F1 \\
 \midrule
-Benign          & 0.90 & 0.97 & 0.93 & 27{,}545 \\
-Attack          & 0.98 & 0.94 & 0.96 & 50{,}188 \\
+Benign          & 0.96 & 0.53 & 0.69 & 0.90 & 0.97 & 0.93 \\
+Attack          & 0.79 & 0.99 & 0.88 & 0.98 & 0.94 & 0.96 \\
 \midrule
-Accuracy        & \multicolumn{3}{c}{0.95} & 77{,}733 \\
-Macro avg       & 0.94 & 0.96 & 0.95 & 77{,}733 \\
-Weighted avg    & 0.95 & 0.95 & 0.95 & 77{,}733 \\
+Accuracy        & \multicolumn{3}{c}{0.83} & \multicolumn{3}{c}{0.95} \\
+Macro avg       & 0.88 & 0.76 & 0.78 & 0.94 & 0.96 & 0.95 \\
+Weighted avg    & 0.85 & 0.83 & 0.81 & 0.95 & 0.95 & 0.95 \\
 \bottomrule
 \end{tabular}
 \end{table}
