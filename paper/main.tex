@@ -10,7 +10,6 @@
 \usetikzlibrary{arrows.meta,positioning,shapes.geometric,fit,shadows}
 \usepackage{url}
 \usepackage{pifont}
-\usepackage{floatrow}
 \usepackage{enumitem}
 \setlist{noitemsep, topsep=3pt, partopsep=0pt, parsep=0pt, itemsep=2pt}
 \def\UrlFont{\rmfamily}
@@ -186,10 +185,10 @@ The attack distribution is highly imbalanced, with DoS and Vulnerability Scan tr
 
 \textbf{Experimental configuration.} All experiments were implemented in Python using TensorFlow and Scikit-learn. The CNN and Attention-GRU models (Table~\ref{tab:hyperparams}) were trained independently using Adam with early stopping. Binary classification employed binary cross-entropy loss, while the multiclass attack classifier used sparse categorical cross-entropy. The binary detector receives the top 40 selected features, while the Attention-GRU processes only malicious traffic routed from Layer-1, avoiding unnecessary multiclass prediction on benign samples.
 
-\begin{figure}[!htb]
-\CenterFloatBoxes
-\begin{floatrow}[2]
-\ttabbox{%
+\begin{table}[!htb]
+\centering
+\caption{Dataset partition.}
+\label{tab:split}
 \small
 \begin{tabular}{lrr}
 \toprule
@@ -199,9 +198,13 @@ Training   & 1{,}623{,}120 & 70\% \\
 Validation & 347{,}811     & 15\% \\
 Testing    & 347{,}812     & 15\% \\
 \bottomrule
-\end{tabular}}
-{\caption{Dataset partition.}\label{tab:split}}
-\ttabbox{%
+\end{tabular}
+\end{table}
+
+\begin{table}[!htb]
+\centering
+\caption{Model hyperparameters.}
+\label{tab:hyperparams}
 \small
 \begin{tabular}{lcc}
 \toprule
@@ -214,10 +217,8 @@ Max.\ epochs      & 30      & 40 \\
 Early stopping    & Pat.=3  & Pat.=3 \\
 Output act.       & Sigmoid & Softmax \\
 \bottomrule
-\end{tabular}}
-{\caption{Model hyperparameters.}\label{tab:hyperparams}}
-\end{floatrow}
-\end{figure}
+\end{tabular}
+\end{table}
 
 \subsection{Evaluation Metrics and Class Imbalance Handling}
 
@@ -239,10 +240,10 @@ For Layer-1, additional emphasis is placed on attack recall and balanced accurac
 
 The proposed HAGNet framework is evaluated on the CICIoT2023 held-out test set in two sequential stages: Layer-1 binary intrusion detection and Layer-2 attack classification. The hierarchical routing mechanism ensures that only malicious traffic is processed by the Attention-GRU classifier, reducing computational overhead while maintaining high detection performance. The first stage distinguishes benign and malicious traffic using the lightweight 1D-CNN described in Table~\ref{tab:cnn}. Instead of using the conventional decision threshold of 0.5, the threshold is optimised over the validation set by maximising macro-F1 subject to the security constraints defined in Section~\ref{sec:methodology} (benign recall $\geq 0.60$, attack recall $\geq 0.90$), as illustrated schematically in Figure~\ref{fig:threshold}.
 
-\begin{figure}[!htb]
-\CenterFloatBoxes
-\begin{floatrow}[2]
-\ttabbox{%
+\begin{table}[!htb]
+\centering
+\caption{Layer-1 CNN architecture.}
+\label{tab:cnn}
 \small
 \begin{tabular}{ll}
 \toprule
@@ -256,12 +257,14 @@ Glob.\ Avg.\ Pooling    & 1D \\
 Dense                   & 16 neurons \\
 Output                  & Sigmoid \\
 \bottomrule
-\end{tabular}}
-{\caption{Layer-1 CNN architecture.}\label{tab:cnn}}
-\ffigbox{%
+\end{tabular}
+\end{table}
+
+\begin{figure}[!htb]
+\centering
 \begin{tikzpicture}
 \begin{axis}[
-  width=4.0cm, height=3.1cm,
+  width=5.5cm, height=3.6cm,
   xlabel={\scriptsize Decision threshold}, ylabel={\scriptsize Score},
   xmin=0, xmax=1, ymin=0, ymax=1.15,
   xtick=\empty, ytick={0,0.5,1}, tick label style={font=\tiny},
@@ -275,9 +278,9 @@ Output                  & Sigmoid \\
 \draw[dashed, green!50!black, thick] (axis cs:0.42,0) -- (axis cs:0.42,1.15);
 \node[font=\tiny, green!40!black, align=left] at (axis cs:0.42,1.28) {Selected $\tau$};
 \end{axis}
-\end{tikzpicture}}
-{\caption{Optimal routing threshold $\tau$: macro-F1 vs.\ attack recall.}\label{fig:threshold}}
-\end{floatrow}
+\end{tikzpicture}
+\caption{Optimal routing threshold $\tau$: macro-F1 vs.\ attack recall.}
+\label{fig:threshold}
 \end{figure}
 
 Table~\ref{tab:layer1-results} contrasts Layer-1 performance at a low, unoptimised initial threshold (0.05) against the optimised threshold $\tau$. At the low threshold, the model over-flags benign traffic (benign recall only 0.53; confusion matrix $\begin{pmatrix} 14{,}676 & 12{,}869 \\ 613 & 49{,}575 \end{pmatrix}$, ordered Benign/Attack), giving 83\% accuracy. Optimising $\tau$ raises benign recall to 0.97 while attack recall falls only slightly, from 0.99 to 0.94, cutting false positives by 94\% (12{,}869 $\to$ 722) at the cost of 2{,}433 additional false negatives (613 $\to$ 3{,}046); confusion matrix $\begin{pmatrix} 26{,}823 & 722 \\ 3{,}046 & 47{,}142 \end{pmatrix}$. Overall accuracy rises from 83\% to 95\%, and macro-F1 from 0.78 to 0.95, confirming that threshold optimisation is essential rather than incidental to this architecture.
@@ -425,15 +428,7 @@ This paper presented HAGNet (Hierarchical Attention-GRU Network), a two-stage de
 
 The hierarchical routing strategy reduces overhead by forwarding only malicious traffic to the second-stage classifier, suiting edge-enabled IoT environments. Adaptive threshold optimisation further prioritises security-sensitive detection over a fixed threshold, addressing limitations including class imbalance, inter-class confusion, and the lack of scalable hierarchical IDS architectures~\cite{ref1,ref2,ref5}. Overall, HAGNet shows that lightweight binary screening, attention-guided temporal learning, and adaptive routing offer a scalable direction for next-generation IoT intrusion detection.
 
-\noindent\textbf{Future work.} Several directions can further enhance the framework's practical applicability:
-\begin{itemize}
-    \item \textbf{Transformer-based sequential learning:} replace the GRU with a lightweight Transformer~\cite{ref20} or temporal-attention model for long-range dependencies~\cite{ref4}.
-    \item \textbf{Federated intrusion detection:} a privacy-preserving federated HAGNet, following the federated averaging paradigm~\cite{ref21}, enabling collaborative learning across distributed IoT devices without sharing raw traffic~\cite{ref3}.
-    \item \textbf{Explainable AI integration:} SHAP~\cite{ref22} or attention-visualisation to assist analysts in interpreting attack decisions.
-    \item \textbf{Real-time edge deployment:} optimise the CNN for hardware such as Raspberry Pi, NVIDIA Jetson, or TinyML accelerators.
-    \item \textbf{Generalised attack detection:} extend the framework to zero-day attacks via self-supervised or continual learning.
-\end{itemize}
-These extensions would improve the robustness and deployment readiness of hierarchical IDS for future IoT infrastructures.
+\noindent\textbf{Future work.} Several directions can further enhance the framework's practical applicability. For \textbf{Transformer-based sequential learning}, the GRU could be replaced with a lightweight Transformer~\cite{ref20} or temporal-attention model for long-range dependencies~\cite{ref4}. For \textbf{federated intrusion detection}, a privacy-preserving federated HAGNet, following the federated averaging paradigm~\cite{ref21}, would enable collaborative learning across distributed IoT devices without sharing raw traffic~\cite{ref3}. For \textbf{explainable AI integration}, SHAP~\cite{ref22} or attention-visualisation could assist analysts in interpreting attack decisions. For \textbf{real-time edge deployment}, the CNN could be optimised for hardware such as Raspberry Pi, NVIDIA Jetson, or TinyML accelerators. Finally, for \textbf{generalised attack detection}, the framework could be extended to zero-day attacks via self-supervised or continual learning. These extensions would improve the robustness and deployment readiness of hierarchical IDS for future IoT infrastructures.
 
 \begin{thebibliography}{22}
 \setlength{\itemsep}{-2pt}
