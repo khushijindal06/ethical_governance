@@ -24,16 +24,16 @@
 
 \begin{document}
 
-\title{HAGNet: A Hierarchical Attention-GRU and CNN Framework for Multi-Stage IoT Intrusion Detection Using CICIoT2023}
+\title{HAGNet: A Hierarchical Attention-GRU and CNN Framework for Multi-Stage IoT Intrusion Detection}
 
-\author{Khushi Jindal}
+\author{Vikas Gupta}
 \institute{Department of Information Technology, Delhi Technological University,\\ Delhi, India \\
-\email{khushijindal06@gmail.com}}
+\email{vikas1gpta@gmail.com}}
 
 \maketitle
 
 \begin{abstract}
-The rapid proliferation of Internet of Things (IoT) devices has expanded the attack surface of modern networks, making reliable and lightweight intrusion detection systems (IDS) a critical requirement. Conventional deep learning-based IDS typically perform flat multiclass classification, which struggles under severe class imbalance and does not reflect the asymmetric operational cost between a missed attack and a false alarm. This paper proposes HAGNet, a Hierarchical Attention-GRU Network that decomposes IoT intrusion detection into two specialised stages. In the first stage, a lightweight one-dimensional Convolutional Neural Network (1D-CNN) performs binary discrimination between benign and malicious traffic using an adaptively optimised decision threshold rather than the conventional 0.5 cut-off, prioritising attack recall for security-critical deployment. Traffic flagged as malicious is then routed to a second-stage Attention-augmented Gated Recurrent Unit (Attention-GRU) classifier, which performs fine-grained attack-type categorisation while benefiting from class-balanced training that mitigates the severe imbalance across attack families. A correlation-filtering and LightGBM gain-based feature selection pipeline reduces the original 80-dimensional feature space to a compact subset prior to model training. The framework is evaluated on CICIoT2023, one of the largest publicly available IoT attack datasets, comprising 2{,}318{,}743 network flows spanning benign traffic and five attack categories, including denial-of-service, distributed denial-of-service, reconnaissance, botnet, and credential-based attacks. The experimental design shows that hierarchical routing reduces the computational burden on the fine-grained classifier while preserving detection sensitivity, and that adaptive threshold optimisation offers a principled, deployment-aware alternative to fixed-threshold rules for resource-constrained, edge-enabled IoT security systems.
+The rapid proliferation of Internet of Things (IoT) devices has expanded the attack surface of modern networks, making reliable and lightweight intrusion detection systems (IDS) a critical requirement. Conventional deep learning-based IDS typically perform flat multiclass classification, which struggles under severe class imbalance and does not reflect the asymmetric operational cost between a missed attack and a false alarm. This paper proposes HAGNet, a Hierarchical Attention-GRU Network that decomposes IoT intrusion detection into two specialised stages. In the first stage, a lightweight one-dimensional Convolutional Neural Network (1D-CNN) performs binary discrimination between benign and malicious traffic using an adaptively optimised decision threshold rather than the conventional 0.5 cut-off, prioritising attack recall for security-critical deployment. Traffic flagged as malicious is then routed to a second-stage Attention-augmented Gated Recurrent Unit (Attention-GRU) classifier, which performs fine-grained attack-type categorisation while benefiting from class-balanced training that mitigates the severe imbalance across attack families. A correlation-filtering and LightGBM gain-based feature selection pipeline reduces the original 80-dimensional feature space to a compact subset prior to model training. The framework is evaluated on CICIoT2023, one of the largest publicly available IoT attack datasets, comprising 2{,}318{,}743 network flows spanning benign traffic and five attack categories, including denial-of-service, distributed denial-of-service, reconnaissance, botnet, and credential-based attacks. At the optimised operating threshold, the Layer-1 detector achieves 95\% test accuracy with 94\% attack recall, and the Layer-2 Attention-GRU attains 97.2\% accuracy (weighted F1 $=0.975$) on correctly-routed attacks, though the rarest attack families still see reduced precision under severe class imbalance. These results indicate that hierarchical routing reduces the computational burden on the fine-grained classifier while preserving detection sensitivity, and that adaptive threshold optimisation offers a principled, deployment-aware alternative to fixed-threshold rules for resource-constrained, edge-enabled IoT security systems.
 
 \keywords{Internet of Things Security \and Intrusion Detection System \and Deep Learning \and Attention Mechanism \and Gated Recurrent Unit \and Convolutional Neural Network \and CICIoT2023 \and Hierarchical Classification \and Threshold Optimization.}
 \end{abstract}
@@ -237,7 +237,7 @@ For Layer-1, additional emphasis is placed on attack recall and balanced accurac
 
 \subsection{Layer-1 Binary Intrusion Detection}
 
-The proposed HAGNet framework is evaluated on the CICIoT2023 test set, consisting of 347{,}812 network traffic flows, in two sequential stages: Layer-1 binary intrusion detection and Layer-2 attack classification. The hierarchical routing mechanism ensures that only malicious traffic is processed by the Attention-GRU classifier, reducing computational overhead while aiming to maintain high detection performance. The first stage distinguishes benign and malicious traffic using the lightweight 1D-CNN described in Table~\ref{tab:cnn}. Instead of using the conventional decision threshold of 0.5, the threshold is optimised over the validation set by maximising macro-F1 subject to the security constraints defined in Section~\ref{sec:methodology} (benign recall $\geq 0.60$, attack recall $\geq 0.90$), as illustrated schematically in Figure~\ref{fig:threshold}.
+The proposed HAGNet framework is evaluated on the CICIoT2023 held-out test set in two sequential stages: Layer-1 binary intrusion detection and Layer-2 attack classification. The hierarchical routing mechanism ensures that only malicious traffic is processed by the Attention-GRU classifier, reducing computational overhead while maintaining high detection performance. The first stage distinguishes benign and malicious traffic using the lightweight 1D-CNN described in Table~\ref{tab:cnn}. Instead of using the conventional decision threshold of 0.5, the threshold is optimised over the validation set by maximising macro-F1 subject to the security constraints defined in Section~\ref{sec:methodology} (benign recall $\geq 0.60$, attack recall $\geq 0.90$), as illustrated schematically in Figure~\ref{fig:threshold}.
 
 \begin{figure}[!htb]
 \CenterFloatBoxes
@@ -280,21 +280,23 @@ Output                  & Sigmoid \\
 \end{floatrow}
 \end{figure}
 
-The optimised threshold enables the CNN to prioritise malicious traffic detection while maintaining acceptable benign recognition, which is essential for practical intrusion detection systems where false negatives are more critical than false positives. Table~\ref{tab:layer1-results} reports the Layer-1 evaluation template used to summarise binary detection performance on the held-out test set at the optimised threshold, alongside the conventional 0.5 baseline for comparison.
+The optimised threshold enables the CNN to prioritise malicious traffic detection while maintaining acceptable benign recognition, which is essential for practical intrusion detection systems where false negatives are more critical than false positives. Table~\ref{tab:layer1-results} reports Layer-1 performance at the optimised threshold: 94\% attack recall at 90\% benign precision, for 95\% overall accuracy. The confusion matrix, ordered (Benign, Attack), is $\begin{pmatrix} 26{,}823 & 722 \\ 3{,}046 & 47{,}142 \end{pmatrix}$: a 2.6\% false-positive rate and a 6.1\% false-negative rate, the errors the security constraint in Section~\ref{sec:methodology} is designed to keep low.
 
 \begin{table}[!htb]
 \centering
-\caption{Layer-1 binary detection performance on the CICIoT2023 test set. Values are to be reported from the trained model's evaluation logs.}
+\caption{Layer-1 binary detection performance on the CICIoT2023 test set at the optimised threshold $\tau$.}
 \label{tab:layer1-results}
 \small
-\begin{tabular}{lcc}
+\begin{tabular}{lcccc}
 \toprule
-\textbf{Metric} & \textbf{Threshold = 0.5} & \textbf{Optimised threshold $\tau$} \\
+\textbf{Class} & \textbf{Precision} & \textbf{Recall} & \textbf{F1-score} & \textbf{Support} \\
 \midrule
-Accuracy       & -- & -- \\
-Precision      & -- & -- \\
-Recall (Attack)& -- & -- \\
-F1-score (macro) & -- & -- \\
+Benign          & 0.90 & 0.97 & 0.93 & 27{,}545 \\
+Attack          & 0.98 & 0.94 & 0.96 & 50{,}188 \\
+\midrule
+Accuracy        & \multicolumn{3}{c}{0.95} & 77{,}733 \\
+Macro avg       & 0.94 & 0.96 & 0.95 & 77{,}733 \\
+Weighted avg    & 0.95 & 0.95 & 0.95 & 77{,}733 \\
 \bottomrule
 \end{tabular}
 \end{table}
@@ -344,25 +346,44 @@ Optimiser        & Adam \\
 \label{fig:gru}
 \end{figure}
 
-Table~\ref{tab:layer2-results} provides the reporting template for per-class Layer-2 performance on the five attack categories described in Table~\ref{tab:traffic}.
+Table~\ref{tab:layer2-results} reports per-class Layer-2 performance on the 47{,}142 test attacks that Layer-1 correctly routed as malicious. The Attention-GRU attains 97.2\% accuracy on this subset (macro-F1 $=0.756$, weighted F1 $=0.975$); the dominant classes (DDoS-ACK Fragmentation, DoS-HTTP Flood) are classified almost perfectly (F1 $\geq 0.976$), while the rarest classes (Mirai Greeth Flood, Dictionary Brute Force) retain high recall (0.67--0.97) from class-balanced training but low precision (0.27--0.30), since a small absolute number of misrouted majority-class flows disproportionately dilutes precision for classes with only 120--195 test instances.
 
 \begin{table}[!htb]
 \centering
-\caption{Layer-2 per-class attack classification performance. Values are to be reported from the trained model's evaluation logs.}
+\caption{Layer-2 per-class attack classification performance.}
 \label{tab:layer2-results}
 \small
-\begin{tabular}{lccc}
+\begin{tabular}{lcccc}
 \toprule
-\textbf{Attack category} & \textbf{Precision} & \textbf{Recall} & \textbf{F1-score} \\
+\textbf{Attack category} & \textbf{Precision} & \textbf{Recall} & \textbf{F1-score} & \textbf{Support} \\
 \midrule
-DoS-HTTP Flood          & -- & -- & -- \\
-Vulnerability Scan      & -- & -- & -- \\
-DDoS ACK Fragmentation  & -- & -- & -- \\
-Mirai Greeth Flood      & -- & -- & -- \\
-Dictionary Brute Force  & -- & -- & -- \\
+DDoS-ACK Fragmentation  & 0.996 & 0.986 & 0.991 & 18{,}978 \\
+Dictionary Brute Force  & 0.303 & 0.967 & 0.461 & 120 \\
+DoS-HTTP Flood          & 0.982 & 0.971 & 0.976 & 17{,}516 \\
+Mirai Greeth Flood      & 0.272 & 0.672 & 0.387 & 195 \\
+Vulnerability Scan      & 0.970 & 0.954 & 0.962 & 10{,}333 \\
 \midrule
-Macro average           & -- & -- & -- \\
-Weighted average        & -- & -- & -- \\
+Accuracy                & \multicolumn{3}{c}{0.972} & 47{,}142 \\
+Macro average           & 0.705 & 0.910 & 0.756 & 47{,}142 \\
+Weighted average        & 0.980 & 0.972 & 0.975 & 47{,}142 \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\begin{table}[!htb]
+\centering
+\caption{Layer-2 confusion matrix (rows: true label, columns: predicted label). DBF = Dictionary Brute Force.}
+\label{tab:layer2-cm}
+\footnotesize
+\begin{tabular}{lccccc}
+\toprule
+ & \textbf{DDoS} & \textbf{DBF} & \textbf{DoS-HTTP} & \textbf{Mirai} & \textbf{VulnScan} \\
+\midrule
+DDoS-ACK Frag.  & 18{,}712 & 25  & 119    & 97  & 25    \\
+DBF             & 0        & 116 & 2      & 1   & 1     \\
+DoS-HTTP Flood  & 72       & 37  & 17{,}014 & 131 & 262   \\
+Mirai Greeth    & 1        & 19  & 29     & 131 & 15    \\
+VulnScan        & 0        & 186 & 169    & 122 & 9{,}856 \\
 \bottomrule
 \end{tabular}
 \end{table}
@@ -389,16 +410,16 @@ Transformer IDS& \ding{55} & \ding{51}    & \ding{55} & \ding{55} \\
 \end{tabular}
 \end{table}
 
-Recent hybrid CNN--GRU models show strong performance for IoT intrusion detection, while surveys emphasise hierarchical learning and lightweight deployment as future directions~\cite{ref6,ref7,ref4}. HAGNet integrates both, suiting resource-constrained IoT environments.
+Recent hybrid CNN--GRU models show strong performance for IoT intrusion detection, while surveys emphasise hierarchical learning and lightweight deployment as future directions~\cite{ref6,ref7,ref4}, both of which HAGNet integrates.
 
-Decomposing intrusion detection into two sequential tasks offers practical advantages over flat multiclass architectures. First, the Layer-1 CNN rapidly filters benign traffic, allowing most flows to be processed with a lightweight model. Second, the Attention-GRU focuses exclusively on malicious traffic, reducing the effect of class imbalance and improving discrimination between similar attack categories. Third, adaptive threshold optimisation prioritises attack recall instead of an arbitrary probability threshold.
+Decomposing intrusion detection into two sequential tasks offers practical advantages over flat multiclass architectures. The Layer-1 CNN rapidly filters benign traffic with a lightweight model; the Attention-GRU then focuses exclusively on malicious traffic, reducing the effect of class imbalance; and adaptive threshold optimisation prioritises attack recall instead of an arbitrary probability threshold.
 
-These characteristics collectively aim to improve the scalability of HAGNet for real-time IoT intrusion detection, particularly in edge-enabled cyber-physical systems where computational efficiency is as important as detection accuracy. Tables~\ref{tab:layer1-results} and~\ref{tab:layer2-results} are structured so that results from repeated experimental runs, including confidence intervals across random seeds, can be reported consistently with the evaluation methodology of Section~\ref{sec:dataset}.
+These characteristics collectively improve the scalability of HAGNet for real-time IoT intrusion detection, particularly in edge-enabled cyber-physical systems where computational efficiency is as important as detection accuracy. The results in Tables~\ref{tab:layer1-results} and~\ref{tab:layer2-results} correspond to a single training run with a fixed random seed; reporting confidence intervals across multiple seeds is left as a direction for more extensive validation.
 
 \section{Conclusion and Future Work}
 \label{sec:conclusion}
 
-This paper presented HAGNet (Hierarchical Attention-GRU Network), a two-stage deep learning framework for intelligent IoT intrusion detection using network flow features from the CICIoT2023 dataset. Unlike conventional flat multiclass intrusion detection systems, the proposed framework decomposes detection into binary anomaly detection followed by fine-grained attack categorisation, enabling each model to specialise in a simpler objective. The complete framework integrates data preprocessing, correlation-based feature reduction, LightGBM gain-based feature selection, a lightweight 1D-CNN for malicious traffic screening, adaptive threshold optimisation, and an Attention-based GRU for attack classification.
+This paper presented HAGNet (Hierarchical Attention-GRU Network), a two-stage deep learning framework for intelligent IoT intrusion detection using network flow features from the CICIoT2023 dataset. Unlike conventional flat multiclass intrusion detection systems, the proposed framework decomposes detection into binary anomaly detection followed by fine-grained attack categorisation, enabling each model to specialise in a simpler objective. The complete framework integrates data preprocessing, correlation-based feature reduction, LightGBM gain-based feature selection, a lightweight 1D-CNN for malicious traffic screening, adaptive threshold optimisation, and an Attention-based GRU for attack classification. On the held-out test set, HAGNet achieves 95\% Layer-1 accuracy with 94\% attack recall, and 97.2\% Layer-2 accuracy on correctly-routed attacks, though minority attack families remain harder to classify with high precision.
 
 The hierarchical routing strategy reduces overhead by forwarding only malicious traffic to the second-stage classifier, suiting edge-enabled IoT environments. Adaptive threshold optimisation further prioritises security-sensitive detection over a fixed threshold, addressing limitations including class imbalance, inter-class confusion, and the lack of scalable hierarchical IDS architectures~\cite{ref1,ref2,ref5}. Overall, HAGNet shows that lightweight binary screening, attention-guided temporal learning, and adaptive routing offer a scalable direction for next-generation IoT intrusion detection.
 
@@ -410,10 +431,10 @@ The hierarchical routing strategy reduces overhead by forwarding only malicious 
     \item \textbf{Real-time edge deployment:} optimise the CNN for hardware such as Raspberry Pi, NVIDIA Jetson, or TinyML accelerators.
     \item \textbf{Generalised attack detection:} extend the framework to zero-day attacks via self-supervised or continual learning.
 \end{itemize}
-These extensions would improve the robustness, explainability, and deployment readiness of hierarchical IDS for future IoT infrastructures.
+These extensions would improve the robustness and deployment readiness of hierarchical IDS for future IoT infrastructures.
 
 \begin{thebibliography}{22}
-\setlength{\itemsep}{-2.5pt}
+\setlength{\itemsep}{-2pt}
 
 \bibitem{ref1}
 Al-Hawawreh, M., Sitnikova, E.: Intelligent approaches toward intrusion detection systems for industrial internet of things: a systematic comprehensive review. J. Netw. Comput. Appl. \textbf{215}, 103444 (2023)
