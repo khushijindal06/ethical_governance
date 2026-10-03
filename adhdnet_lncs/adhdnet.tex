@@ -7,6 +7,7 @@
 \usepackage[T1]{fontenc}
 \usepackage{lmodern}
 \usepackage{graphicx}
+\graphicspath{{figs/}}
 \usepackage{amsmath,amssymb}
 \usepackage{booktabs}
 \usepackage{multirow}
@@ -46,7 +47,7 @@
 \maketitle
 
 \begin{abstract}
-Attention-Deficit/Hyperactivity Disorder (ADHD) is a neurodevelopmental disorder whose diagnosis primarily relies on behavioral and clinical assessment, motivating the investigation of neuroimaging-based computational approaches. However, many deep learning models for neuroimaging employ increasingly complex architectures with substantial parameter and computational requirements. This work presents \emph{ADHDNet}, a lightweight multimodal 3D convolutional neural network for ADHD classification using structural magnetic resonance imaging (sMRI) and phenotypic information. The proposed framework employs depthwise-separable 3D convolutional blocks to reduce model parameters while retaining volumetric feature extraction capability. Three-dimensional efficient channel attention is applied within each encoder block to recalibrate informative feature channels, while an adaptive gated fusion module dynamically combines MRI-derived and phenotypic representations. Experiments were conducted on a multisite subset of the ADHD-200 dataset comprising 497 subjects after excluding a site without ADHD cases. Structural MRI volumes were resized to $64\times64\times64$, normalized, and combined with five phenotypic features. The proposed model contains only 71,558 trainable parameters (0.0716M). On a stratified held-out validation set, ADHDNet achieved 89.00\% accuracy and an AUC of 0.9535, with a sensitivity of 93.33\%, specificity of 85.45\%, precision of 84.00\%, and F1-score of 0.88. Compared with a standard Conv3D multimodal comparator containing 1.376M parameters, ADHDNet reduces the parameter count by approximately 94.8\% and its FP32 weight storage from about 5.25\,MiB to 0.27\,MiB. These results indicate that a compact multimodal 3D architecture can support ADHD classification while substantially reducing model complexity.
+Attention-Deficit/Hyperactivity Disorder (ADHD) is a neurodevelopmental disorder whose diagnosis primarily relies on behavioral and clinical assessment, motivating the investigation of neuroimaging-based computational approaches. However, many deep learning models for neuroimaging employ increasingly complex architectures with substantial parameter and computational requirements. This work presents \emph{ADHDNet}, a lightweight multimodal 3D convolutional neural network for ADHD classification using structural magnetic resonance imaging (sMRI) and phenotypic information. The framework employs depthwise-separable 3D convolutional blocks to reduce model parameters while retaining volumetric feature extraction capability, a single three-dimensional efficient channel attention module to recalibrate the final encoder feature channels, and an adaptive gated fusion module to combine MRI-derived and phenotypic representations. Experiments were conducted on a multisite subset of the ADHD-200 dataset comprising 497 subjects. Structural MRI volumes were resized to $64\times64\times64$, normalized, and combined with five phenotypic features. ADHDNet contains 71,552 trainable parameters (0.0716M) and requires 0.19 GFLOPs per volume. On a stratified held-out validation set, it achieved 90.00\% accuracy and an AUC of 0.9543, and in stratified 5-fold cross-validation it achieved $87.52\pm4.61\%$ accuracy and an AUC of $0.951\pm0.017$. Compared with a conventional Conv3D multimodal model containing 1.376M parameters, ADHDNet uses 94.8\% fewer parameters and 97.2\% fewer FLOPs while reaching comparable cross-validated AUC ($0.957\pm0.020$). A component-wise ablation shows, however, that the phenotypic branch provides most of the discriminative information: the MRI-only variant performed close to chance. These results indicate that a compact multimodal 3D architecture can match a much larger model at a fraction of its cost, while highlighting the need to evaluate MRI-derived and phenotypic contributions separately.
 
 \keywords{ADHD \and Structural MRI \and Multimodal learning \and 3D CNN \and Depthwise-separable convolution \and Efficient channel attention \and Lightweight deep learning}
 \end{abstract}
@@ -68,7 +69,7 @@ To address this gap, we propose \emph{ADHDNet}, a lightweight adaptive multimoda
   \item A \textbf{lightweight 3D MRI encoder} based on depthwise-separable Conv3D for parameter-efficient volumetric representation learning.
   \item Integration of lightweight \textbf{3D efficient channel attention (ECA)} within the hierarchical MRI encoder for channel-wise feature recalibration.
   \item An \textbf{adaptive gated fusion} mechanism for sample-dependent integration of structural MRI and phenotypic representations.
-  \item An \textbf{explicit evaluation of parameter efficiency} against a conventional multimodal Conv3D architecture on a multisite ADHD-200 cohort.
+  \item An \textbf{explicit evaluation of parameter and computational efficiency} against a conventional multimodal Conv3D model on a multisite ADHD-200 cohort, complemented by 5-fold cross-validation and a component-wise ablation study.
 \end{enumerate}
 
 %======================================================================
@@ -131,7 +132,7 @@ Five phenotypic variables were incorporated: age, sex, medication status, site, 
 \section{Proposed ADHDNet}
 %======================================================================
 
-ADHDNet consists of a lightweight 3D MRI encoder, a compact phenotypic encoder, and an adaptive gated fusion module (Fig.~\ref{fig:arch}). A $1\times64\times64\times64$ sMRI volume is processed through three depthwise-separable Conv3D blocks with channel progression $24\rightarrow48\rightarrow96$, each containing its own 3D ECA module and max pooling, followed by global average pooling and projection to a 128-dimensional MRI representation. In parallel, five phenotypic features are encoded by a $5\rightarrow32\rightarrow32$ MLP. A gating network computes fusion weights from the concatenated 160-dimensional vector of the MRI and phenotypic representations, the phenotypic representation is projected to 128 dimensions, and the two 128-dimensional representations are combined by gated element-wise fusion and passed to a $128\rightarrow64\rightarrow2$ classification head. The complete model contains 71,558 trainable parameters. Each component is described below.
+ADHDNet consists of a lightweight 3D MRI encoder, a compact phenotypic encoder, and an adaptive gated fusion module (Fig.~\ref{fig:arch}). A $1\times64\times64\times64$ sMRI volume is processed through three depthwise-separable Conv3D blocks with channel progression $24\rightarrow48\rightarrow96$, each followed by max pooling; a single 3D ECA module then recalibrates the final feature map before global average pooling and projection to a 128-dimensional MRI representation. In parallel, five phenotypic features are encoded by a $5\rightarrow32\rightarrow32$ MLP. A gating network computes fusion weights from the concatenated 160-dimensional vector of the MRI and phenotypic representations, the phenotypic representation is projected to 128 dimensions, and the two 128-dimensional representations are combined by gated element-wise fusion and passed to a $128\rightarrow64\rightarrow2$ classification head. The complete model contains 71,552 trainable parameters. Each component is described below.
 
 \begin{figure}[t]
 \centering
@@ -179,7 +180,7 @@ ADHDNet consists of a lightweight 3D MRI encoder, a compact phenotypic encoder, 
 
 \subsection{Lightweight 3D MRI Encoder}
 
-The imaging branch consists of three depthwise-separable 3D convolutional blocks with channel progression $1\rightarrow24\rightarrow48\rightarrow96$. Each block consists of a depthwise-separable Conv3D operation followed by batch normalization, ReLU activation, 3D efficient channel attention (ECA; Sect.~\ref{sec:eca}), and $2\times2\times2$ max pooling. Channel-wise feature recalibration is therefore performed at each hierarchical feature-extraction stage, and the spatial resolution is halved by each block ($64^3\rightarrow32^3\rightarrow16^3\rightarrow8^3$). Depthwise-separable convolution~\cite{chollet2017xception,howard2017mobilenets} decomposes a conventional convolution into (i) a depthwise spatial convolution and (ii) a pointwise $1\times1\times1$ convolution. For a conventional 3D convolution with kernel size $K$, the parameter count is approximately
+The imaging branch consists of three depthwise-separable 3D convolutional blocks with channel progression $1\rightarrow24\rightarrow48\rightarrow96$. Each block consists of a depthwise-separable Conv3D operation ($3\times3\times3$ depthwise kernel followed by a $1\times1\times1$ pointwise convolution), batch normalization, ReLU activation, and $2\times2\times2$ max pooling, so that the spatial resolution is halved by each block ($64^3\rightarrow32^3\rightarrow16^3\rightarrow8^3$). Depthwise-separable convolution~\cite{chollet2017xception,howard2017mobilenets} decomposes a conventional convolution into (i) a depthwise spatial convolution and (ii) a pointwise $1\times1\times1$ convolution. For a conventional 3D convolution with kernel size $K$, the parameter count is approximately
 \begin{equation}
 P_{\text{conv}} = K^3 C_{in} C_{out},
 \end{equation}
@@ -187,16 +188,16 @@ whereas depthwise-separable convolution requires approximately
 \begin{equation}
 P_{\text{DS}} = K^3 C_{in} + C_{in} C_{out}.
 \end{equation}
-Since the second expression can be considerably smaller when $C_{out}$ is large, depthwise-separable convolution provides a mechanism for reducing the number of trainable parameters. After the third block, adaptive global average pooling of the $96\times8\times8\times8$ feature map produces a 96-dimensional representation, which is projected to a 128-dimensional MRI embedding.
+Since the second expression can be considerably smaller when $C_{out}$ is large, depthwise-separable convolution provides a mechanism for reducing the number of trainable parameters. After the third block, a single 3D ECA module (Sect.~\ref{sec:eca}) recalibrates the $96\times8\times8\times8$ feature map, and adaptive global average pooling produces a 96-dimensional representation, which is projected to a 128-dimensional MRI embedding.
 
 \subsection{Efficient Channel Attention}
 \label{sec:eca}
 
-Within each encoder block, 3D ECA recalibrates the channels produced by the convolution before max pooling, giving three ECA modules in total. To improve feature recalibration without introducing a large parameter overhead, a three-dimensional extension of efficient channel attention (ECA)~\cite{wang2020eca} is incorporated. The attention operation estimates channel importance from globally pooled feature responses and applies channel-wise weights to the volumetric feature maps:
+Following volumetric feature extraction, a single 3D ECA module is applied to the output of the third encoder block, recalibrating the 96 learned feature channels before global pooling. To improve feature recalibration without introducing a large parameter overhead, a three-dimensional extension of efficient channel attention (ECA)~\cite{wang2020eca} is used. The attention operation estimates channel importance from globally pooled feature responses and applies channel-wise weights to the volumetric feature maps:
 \begin{equation}
 F_{att} = A(F) \odot F,
 \end{equation}
-where $F$ represents the feature tensor and $A(F)$ the learned channel attention weights. This allows the network to emphasize informative feature channels while maintaining the lightweight nature of the architecture.
+where $F$ represents the feature tensor and $A(F)$ the learned channel attention weights. Following ECA-Net~\cite{wang2020eca}, $A(F)$ is obtained by global average pooling, a 1D convolution across the channel dimension whose kernel size is chosen adaptively from the number of channels ($k=3$ for 96 channels), and a sigmoid. The module therefore adds only three parameters while allowing the network to emphasize informative feature channels.
 
 \subsection{Phenotypic Encoder}
 \label{sec:pheno}
@@ -224,21 +225,27 @@ The fused 128-dimensional representation is passed through a compact classifier 
 \section{Model Complexity}
 %======================================================================
 
-Parameter efficiency is a central design consideration of ADHDNet. The proposed model contains 71,558 trainable parameters ($\approx$0.0716M). For comparison, a standard Conv3D multimodal architecture implemented under the same experimental framework contains 1,376,080 parameters ($\approx$1.376M). The relative reduction is
+Parameter efficiency is a central design consideration of ADHDNet. The proposed model contains 71,552 trainable parameters ($\approx$0.0716M). For comparison, a conventional Conv3D multimodal model was implemented under the same experimental framework. It uses four standard (non-separable) Conv3D blocks with channel progression $32\rightarrow64\rightarrow128\rightarrow256$, 3D ECA after blocks 2--4, generalized-mean pooling, a 256-dimensional MRI embedding, a deeper $5\rightarrow32\rightarrow64\rightarrow64$ phenotypic MLP, the same gated fusion mechanism, and a $256\rightarrow128\rightarrow64\rightarrow2$ classification head. This comparator contains 1,376,080 parameters ($\approx$1.376M). The relative reduction is
 \begin{equation}
-\frac{1{,}376{,}080 - 71{,}558}{1{,}376{,}080}\times 100 \approx 94.8\%.
+\frac{1{,}376{,}080 - 71{,}552}{1{,}376{,}080}\times 100 \approx 94.8\%.
 \end{equation}
-Stored as 32-bit floating-point values, the trained weights of ADHDNet occupy $71{,}558\times4 = 286{,}232$ bytes ($\approx$0.27\,MiB), compared with $1{,}376{,}080\times4 = 5{,}504{,}320$ bytes ($\approx$5.25\,MiB) for the comparator. These figures describe FP32 weight storage only, not runtime memory usage. The efficiency results are visualized in Fig.~\ref{fig:results}(b) (Sect.~\ref{sec:efficiency}).
+Stored as 32-bit floating-point values, the trained weights of ADHDNet occupy $71{,}552\times4 = 286{,}208$ bytes ($\approx$0.27\,MiB), compared with $1{,}376{,}080\times4 = 5{,}504{,}320$ bytes ($\approx$5.25\,MiB) for the comparator. These figures describe FP32 weight storage only, not runtime memory usage. FLOPs and inference latency are reported in Sect.~\ref{sec:efficiency}.
 
 %======================================================================
 \section{Experimental Setup}
 %======================================================================
 
 \subsection{Training Strategy}
-The network was trained in PyTorch~\cite{paszke2019pytorch} using the AdamW optimizer~\cite{loshchilov2019adamw} with a learning rate of $1\times10^{-4}$, weight decay of $1\times10^{-4}$, batch size of 8, a maximum of 150 epochs, early stopping with patience 15, label smoothing~\cite{szegedy2016inception} of 0.1, gradient clipping at 1.0, and cosine annealing learning-rate scheduling~\cite{loshchilov2017sgdr}. Weighted cross-entropy loss was used to account for class imbalance. The random seed was fixed to 42; Python, NumPy, and PyTorch random states were seeded, and deterministic CUDA settings were used where applicable.
+The network was trained in PyTorch~\cite{paszke2019pytorch} using the AdamW optimizer~\cite{loshchilov2019adamw} with a learning rate of $1\times10^{-4}$, weight decay of $1\times10^{-4}$, batch size of 8, a maximum of 150 epochs, early stopping with patience 15, label smoothing~\cite{szegedy2016inception} of 0.1, gradient clipping at 1.0, and cosine annealing learning-rate scheduling~\cite{loshchilov2017sgdr}. Weighted cross-entropy loss was used to account for class imbalance, with class weights computed from the training subjects. During training, each MRI volume was randomly flipped along each spatial axis with probability 0.5. The checkpoint with the highest validation AUC was retained. The random seed was fixed to 42; Python, NumPy, and PyTorch random states were seeded, and deterministic CUDA settings were used where applicable.
 
 \subsection{Experimental Protocol}
-The final dataset was divided using a stratified 80:20 train--validation split, giving 397 training subjects and 100 held-out validation subjects (45 ADHD and 55 controls). Normalization statistics were calculated from the training data and applied to the validation data. Importantly, the validation set was used for early stopping and model selection; therefore, the reported results should be interpreted as \emph{held-out validation performance} rather than independent external test performance.
+Three complementary evaluation settings were used.
+
+\emph{Held-out validation.} The final dataset was divided using a stratified 80:20 train--validation split (random seed 42), giving 397 training subjects and 100 held-out validation subjects (45 ADHD and 55 controls). Imputation statistics (median for continuous and mode for categorical variables) and normalization statistics were computed from the training subjects only and applied unchanged to the validation subjects. The validation set was used for early stopping and model selection; the reported results should therefore be interpreted as \emph{held-out validation performance} rather than independent external test performance.
+
+\emph{Cross-validation.} To assess the variability of performance across data partitions, ADHDNet and the conventional Conv3D comparator were evaluated with stratified 5-fold cross-validation on all 497 subjects (shuffled with seed 42). In each fold, imputation and normalization statistics were fitted on that fold's training subjects only. Each model was trained for at most 60 epochs with early stopping (patience 10) and otherwise identical settings, and fold metrics were taken at the epoch with the highest validation AUC.
+
+\emph{Ablation and efficiency.} Component-wise ablation variants were trained and evaluated on the same held-out split and with the same training budget as the full model (Sect.~\ref{sec:ablation}). Computational cost was measured for a single $1\times64\times64\times64$ volume with five phenotypic features: FLOPs were counted with PyTorch's \texttt{FlopCounterMode}, and inference latency was averaged over 50 timed forward passes after 10 warm-up passes on a CUDA GPU, at batch sizes 1 and 8.% TODO: name the GPU model used for the latency benchmark
 
 \subsection{Evaluation Metrics}
 With ADHD as the positive class, the model was evaluated using
@@ -247,6 +254,7 @@ With ADHD as the positive class, the model was evaluated using
 \text{Sensitivity}=\frac{TP}{TP+FN}, \\
 \text{Specificity}=\frac{TN}{TN+FP}, \quad
 \text{Precision}=\frac{TP}{TP+FP}, \\
+\text{NPV}=\frac{TN}{TN+FN}, \quad
 F_1 = 2\,\frac{\text{Precision}\times\text{Recall}}{\text{Precision}+\text{Recall}}.
 \end{gather}
 Receiver operating characteristic (ROC) analysis was also performed and the area under the ROC curve (AUC) was calculated.
@@ -255,9 +263,9 @@ Receiver operating characteristic (ROC) analysis was also performed and the area
 \section{Results}
 %======================================================================
 
-\subsection{Classification Performance}
+\subsection{Held-Out Classification Performance}
 
-Table~\ref{tab:results} summarizes the classification performance of ADHDNet on the held-out validation set. ADHDNet achieved an accuracy of 89.00\% and an AUC of 0.9535, with a sensitivity of 93.33\%, specificity of 85.45\%, precision of 84.00\%, NPV of 94.00\%, and F1-score of 0.88.
+Table~\ref{tab:results} summarizes the classification performance of ADHDNet on the held-out validation set. ADHDNet achieved an accuracy of 90.00\% and an AUC of 0.9543, with a sensitivity of 95.56\%, specificity of 85.45\%, precision of 84.31\%, NPV of 95.92\%, and F1-score of 0.8958. The best validation AUC was reached at epoch 60, and training stopped early at epoch 75. The corresponding ROC curve and confusion matrix are shown in Fig.~\ref{fig:roc_cm}.
 
 \begin{table}[t]
 \centering
@@ -268,70 +276,119 @@ Table~\ref{tab:results} summarizes the classification performance of ADHDNet on 
 \toprule
 Accuracy & AUC & Sensitivity & Specificity & Precision & NPV & F1-score \\
 \midrule
-89.00\% & 0.9535 & 93.33\% & 85.45\% & 84.00\% & 94.00\% & 0.88 \\
+90.00\% & 0.9543 & 95.56\% & 85.45\% & 84.31\% & 95.92\% & 0.8958 \\
 \bottomrule
 \end{tabular}
 \end{table}
 
 \begin{figure}[t]
 \centering
-\begin{minipage}[b]{0.43\textwidth}
-\centering
-\begin{tikzpicture}[
-  cell/.style={minimum width=15mm, minimum height=11mm, draw=white, line width=1.5pt, align=center, font=\small},
-  lab/.style={font=\footnotesize}]
-% fill intensity = row-normalized rate (single-hue sequential scale)
-\node[cell, fill=adhdblue!93, text=white] (tp) at (0,0)      {\textbf{42}\\[-1pt]{\scriptsize 93.3\%}};
-\node[cell, fill=adhdblue!7]              (fn) at (1.5,0)    {\textbf{3}\\[-1pt]{\scriptsize 6.7\%}};
-\node[cell, fill=adhdblue!15]             (fp) at (0,-1.1)   {\textbf{8}\\[-1pt]{\scriptsize 14.5\%}};
-\node[cell, fill=adhdblue!85, text=white] (tn) at (1.5,-1.1) {\textbf{47}\\[-1pt]{\scriptsize 85.5\%}};
-\node[lab, above=1pt of tp] {ADHD};
-\node[lab, above=1pt of fn] {Control};
-\node[lab, font=\footnotesize\bfseries] at (0.75,1.2) {Predicted};
-\node[lab, left=1pt of tp] {ADHD};
-\node[lab, left=1pt of fp] {Control};
-\node[lab, font=\footnotesize\bfseries, rotate=90] at (-2.25,-0.55) {Actual};
-\end{tikzpicture}\\[2pt]
-{\small (a)}
+\begin{minipage}[b]{0.49\textwidth}\centering
+\IfFileExists{figs/fig2_roc_curve.png}{\includegraphics[width=0.98\linewidth]{figs/fig2_roc_curve.png}}{\fbox{\parbox[c][30mm][c]{\dimexpr0.98\linewidth-2\fboxsep-0.8pt\relax}{\centering\footnotesize Figure pending:\\\texttt{figs/fig2\_roc\_curve.png}\\(ROC curve)}}}\\[2pt]{\small (a)}
 \end{minipage}\hfill
-\begin{minipage}[b]{0.55\textwidth}
-\centering
-\begin{tikzpicture}
-% horizontal bars, 1M parameters = 27 mm
-\def\u{2.7}
-\foreach \x in {0,0.5,1.0,1.5} {
-  \draw[black!12] (\x*\u,-0.45) -- (\x*\u,1.55);
-  \node[font=\footnotesize, below] at (\x*\u,-0.45) {\x};
-}
-\draw[black!60] (0,-0.45) -- (1.5*\u,-0.45);
-\fill[black!35] (0,0.85) rectangle (1.376*\u,1.25);
-\fill[adhdblue] (0,-0.05) rectangle (0.0716*\u,0.35);
-\node[font=\footnotesize, anchor=east] at (-0.05,1.05) {Std.\ Conv3D};
-\node[font=\footnotesize, anchor=east] at (-0.05,0.15) {ADHDNet};
-\node[font=\scriptsize, anchor=south east] at (1.376*\u,1.25) {1.376M \,|\, 5.25\,MiB};
-\node[font=\scriptsize, anchor=west] at (0.0716*\u+0.05,0.15) {0.0716M \,|\, 0.27\,MiB};
-\node[font=\footnotesize] at (0.75*\u,-1.05) {Trainable parameters (M)};
-\end{tikzpicture}\\[2pt]
-{\small (b)}
+\begin{minipage}[b]{0.49\textwidth}\centering
+\IfFileExists{figs/fig3_confusion_matrix.png}{\includegraphics[width=0.98\linewidth]{figs/fig3_confusion_matrix.png}}{\fbox{\parbox[c][30mm][c]{\dimexpr0.98\linewidth-2\fboxsep-0.8pt\relax}{\centering\footnotesize Figure pending:\\\texttt{figs/fig3\_confusion\_matrix.png}\\(confusion matrix)}}}\\[2pt]{\small (b)}
 \end{minipage}
-\caption{(a) Confusion matrix of ADHDNet on the held-out validation set ($n=100$); cell shading and percentages are normalized by the actual class. (b) Trainable parameters of ADHDNet and the standard Conv3D multimodal comparator, a 94.8\% reduction; labels give the corresponding FP32 weight storage (parameters $\times$ 4 bytes), not runtime memory usage.}
-\label{fig:results}
+\caption{Held-out validation results of ADHDNet ($n=100$). (a) ROC curve computed from the per-subject predicted probabilities (AUC $=0.9543$). (b) Confusion matrix at a decision threshold of 0.5.}
+\label{fig:roc_cm}
 \end{figure}
 
 \subsection{Per-Class Error Analysis}
 
-The confusion matrix in Fig.~\ref{fig:results}(a) shows how the errors are distributed between the two classes. ADHDNet correctly classified 42 of 45 ADHD subjects and 47 of 55 controls. Of the 11 misclassifications, 8 were controls predicted as ADHD and 3 were ADHD subjects predicted as controls. The model therefore errs more often towards false positives than false negatives, which is reflected in the higher sensitivity (93.33\%) than specificity (85.45\%) and in the higher NPV (94.00\%) than precision (84.00\%). In a screening-support setting, this asymmetry means that a negative prediction was more reliable than a positive one on this validation cohort.
+The confusion matrix in Fig.~\ref{fig:roc_cm}(b) shows how the errors are distributed between the two classes. ADHDNet correctly classified 43 of 45 ADHD subjects and 47 of 55 controls. Of the 10 misclassifications, 8 were controls predicted as ADHD and 2 were ADHD subjects predicted as controls. The model therefore errs more often towards false positives than false negatives, which is reflected in the higher sensitivity (95.56\%) than specificity (85.45\%) and in the higher NPV (95.92\%) than precision (84.31\%). On this validation cohort, a negative prediction was consequently more reliable than a positive one.
 
-\subsection{ROC Analysis}
+\subsection{Cross-Validation}
 
-The model achieved an AUC of 0.9535 on the held-out validation cohort. However, because this validation set was used for early stopping and model selection, the result should not be interpreted as an independent external validation estimate.
+Table~\ref{tab:cv} reports stratified 5-fold cross-validation results for ADHDNet and the conventional Conv3D comparator, and Fig.~\ref{fig:cv} shows the per-fold AUC values. ADHDNet achieved a mean accuracy of $87.52\pm4.61\%$ and a mean AUC of $0.9512\pm0.0169$, with per-fold accuracy ranging from 79.80\% to 90.91\%. The comparator achieved a mean accuracy of $86.51\pm3.64\%$ and a mean AUC of $0.9566\pm0.0197$. The two models therefore reached comparable discrimination, with a mean AUC difference of 0.005, although ADHDNet uses 19.2$\times$ fewer parameters. ADHDNet obtained a slightly higher mean accuracy, sensitivity, and F1-score, and its sensitivity varied less across folds ($\pm5.75\%$ versus $\pm9.63\%$). The held-out accuracy of 90.00\% lies at the upper end of the cross-validated range; the cross-validated mean of 87.52\% is therefore the more representative estimate of expected performance.
+
+\begin{table}[t]
+\centering
+\caption{Stratified 5-fold cross-validation results (mean $\pm$ SD across folds, $n=497$). Fold metrics were taken at the epoch with the highest fold-validation AUC.}
+\label{tab:cv}
+\setlength{\tabcolsep}{6pt}
+\begin{tabular}{lcc}
+\toprule
+Metric & Conv3D comparator & \textbf{ADHDNet} \\
+\midrule
+Parameters & 1.376M & \textbf{0.0716M} \\
+Accuracy (\%) & $86.51\pm3.64$ & $\mathbf{87.52\pm4.61}$ \\
+AUC & $\mathbf{0.9566\pm0.0197}$ & $0.9512\pm0.0169$ \\
+Sensitivity (\%) & $85.10\pm9.63$ & $\mathbf{87.36\pm5.75}$ \\
+Specificity (\%) & $87.64\pm7.09$ & $87.64\pm4.71$ \\
+F1-score (\%) & $84.79\pm4.70$ & $\mathbf{86.21\pm5.20}$ \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\begin{figure}[t]
+\centering
+\IfFileExists{figs/cv_comparison_auc.png}{\includegraphics[width=0.75\textwidth]{figs/cv_comparison_auc.png}}{\fbox{\parbox[c][30mm][c]{\dimexpr0.75\textwidth-2\fboxsep-0.8pt\relax}{\centering\footnotesize Figure pending:\\\texttt{figs/cv\_comparison\_auc.png}\\(per-fold AUC comparison)}}}
+\caption{Per-fold validation AUC of ADHDNet and the conventional Conv3D comparator in stratified 5-fold cross-validation.}
+\label{fig:cv}
+\end{figure}
 
 \subsection{Computational Efficiency}
 \label{sec:efficiency}
 
-Because parameter efficiency is a primary design objective of ADHDNet, model complexity was explicitly evaluated against a standard Conv3D multimodal comparator implemented under the same experimental framework (Fig.~\ref{fig:results}(b)). ADHDNet contains 0.0716M trainable parameters compared with 1.376M for the comparator, corresponding to a 94.8\% reduction in parameter count (a factor of 19.2). Correspondingly, its FP32 weight storage falls from approximately 5.25\,MiB to 0.27\,MiB. These results show that multimodal 3D MRI analysis does not necessarily require a large number of trainable parameters.
+Because parameter efficiency is a primary design objective of ADHDNet, its computational cost was measured against the conventional Conv3D comparator (Table~\ref{tab:efficiency}, Fig.~\ref{fig:efficiency}). ADHDNet contains 71,552 trainable parameters compared with 1,376,080 for the comparator, a 94.8\% reduction (19.2$\times$), and its FP32 weight storage falls from approximately 5.25\,MiB to 0.27\,MiB. It requires 0.1932 GFLOPs per volume compared with 6.7952 GFLOPs, a 97.2\% reduction (35.2$\times$). On the GPU used for benchmarking, single-volume inference latency fell from $4.32\pm0.12$\,ms to $2.36\pm0.15$\,ms (1.8$\times$ faster), and batched throughput at batch size 8 rose from 242.6 to 662.9 volumes per second (2.7$\times$). Latency and throughput depend on hardware, whereas parameter and FLOP counts do not; the speed-up is smaller than the FLOP reduction because small 3D models do not fully utilize the GPU. Together with the cross-validation results, these measurements show that ADHDNet reaches discrimination comparable to the much larger comparator at a small fraction of its computational cost.
 
-% TODO: once measured, add GFLOPs and inference time per sample (see measure_efficiency.py).
+\begin{table}[t]
+\centering
+\caption{Computational cost per $64\times64\times64$ volume. FP32 weight storage is parameters $\times$ 4 bytes, not runtime memory. Latency is mean $\pm$ SD over 50 runs at batch size 1; throughput is at batch size 8.}
+\label{tab:efficiency}
+\setlength{\tabcolsep}{3pt}
+{\small
+\begin{tabular}{lrrrrr}
+\toprule
+Model & Params & \shortstack{FP32\\weights} & GFLOPs & \shortstack{Latency\\(ms)} & \shortstack{Throughput\\(vol/s)} \\
+\midrule
+Conv3D comparator & 1,376,080 & 5.25\,MiB & 6.7952 & $4.32\pm0.12$ & 242.6 \\
+\textbf{ADHDNet} & \textbf{71,552} & \textbf{0.27\,MiB} & \textbf{0.1932} & $\mathbf{2.36\pm0.15}$ & \textbf{662.9} \\
+\midrule
+Reduction/speed-up & 94.8\% & 94.8\% & 97.2\% & 1.8$\times$ & 2.7$\times$ \\
+\bottomrule
+\end{tabular}}
+\end{table}
+
+\begin{figure}[t]
+\centering
+\IfFileExists{figs/fig4_parameter_efficiency.png}{\includegraphics[width=0.7\textwidth]{figs/fig4_parameter_efficiency.png}}{\fbox{\parbox[c][30mm][c]{\dimexpr0.7\textwidth-2\fboxsep-0.8pt\relax}{\centering\footnotesize Figure pending:\\\texttt{figs/fig4\_parameter\_efficiency.png}\\(parameter efficiency)}}}
+\caption{Trainable parameters of ADHDNet and the conventional Conv3D comparator (1,376,080 $\rightarrow$ 71,552; 94.8\% reduction).}
+\label{fig:efficiency}
+\end{figure}
+
+\subsection{Ablation Study}
+\label{sec:ablation}
+
+To quantify the contribution of each component, four variants were derived from the full model (A0) by changing one component at a time while keeping all other components and the training protocol fixed: removing the ECA module (A1), removing the phenotypic branch and fusion so that the MRI embedding feeds the classifier directly (A2), replacing adaptive gated fusion with concatenation followed by a linear projection to the same 128-dimensional representation (A3), and replacing depthwise-separable convolutions with standard $3\times3\times3$ convolutions (A4). Results on the held-out validation set are given in Table~\ref{tab:ablation} and Fig.~\ref{fig:ablation}.
+
+\begin{table}[t]
+\centering
+\caption{Component-wise ablation on the held-out validation set ($n=100$). Each variant changes one component of the full model.}
+\label{tab:ablation}
+\setlength{\tabcolsep}{3pt}
+{\footnotesize
+\begin{tabular}{llcccrccc}
+\toprule
+ & Variant & ECA & Pheno. & Fusion & Params & Acc. (\%) & AUC & F1 \\
+\midrule
+A0 & \textbf{Full ADHDNet} & \checkmark & \checkmark & Gated & 71,552 & \textbf{90.00} & 0.9543 & \textbf{0.8958} \\
+A1 & w/o ECA & -- & \checkmark & Gated & 71,549 & 87.00 & 0.9487 & 0.8632 \\
+A2 & w/o phenotype & \checkmark & -- & -- & 28,896 & 54.00 & 0.5644 & 0.4773 \\
+A3 & Concat. fusion & \checkmark & \checkmark & Concat. & 66,272 & 89.00 & 0.9564 & 0.8842 \\
+A4 & Standard Conv3D & \checkmark & \checkmark & Gated & 220,133 & 89.00 & 0.9547 & 0.8842 \\
+\bottomrule
+\end{tabular}}
+\end{table}
+
+\begin{figure}[t]
+\centering
+\IfFileExists{figs/fig5_ablation_accuracy.png}{\includegraphics[width=0.75\textwidth]{figs/fig5_ablation_accuracy.png}}{\fbox{\parbox[c][30mm][c]{\dimexpr0.75\textwidth-2\fboxsep-0.8pt\relax}{\centering\footnotesize Figure pending:\\\texttt{figs/fig5\_ablation\_accuracy.png}\\(ablation accuracy)}}}
+\caption{Held-out validation accuracy of the full model and the four ablation variants.}
+\label{fig:ablation}
+\end{figure}
+
+The phenotypic branch had by far the largest effect. Without it (A2), accuracy fell to 54.00\% and AUC to 0.5644, close to chance level, indicating that under the present preprocessing the MRI branch alone provides little discriminative information and that most of the model's performance derives from the phenotypic features. Removing ECA (A1) reduced accuracy by 3.0 percentage points and AUC by 0.0056, a consistent but small change for a module with three parameters. Replacing gated fusion with concatenation (A3) gave a slightly lower accuracy and F1-score but a slightly higher AUC (0.9564), so this split provides no clear evidence that gating outperforms concatenation. Replacing depthwise-separable with standard convolutions (A4) produced essentially the same performance (89.00\% accuracy, AUC 0.9547) with 3.1$\times$ more parameters, confirming that the depthwise-separable factorization reduces model size without loss of accuracy. Because these comparisons use a single split of 100 subjects, where one subject corresponds to one percentage point of accuracy, differences of a few points should be interpreted with caution.
 
 \subsection{Comparison with Existing Studies}
 
@@ -356,32 +413,30 @@ Deepika et al.~\cite{deepika2024} & 2024 & rs-fMRI + phenotypic & Multimodality 
 Zamanzadeh et al.~\cite{zamanzadeh2024} & 2024 & rs-fMRI & EEC & -- & NR & 74.30 \\
 Wu et al.~\cite{wu2025hagcn} & 2025 & rs-fMRI & HAGCN & -- & NR & 77.95 \\
 Deepika et al.~\cite{deepika2025} & 2025 & MRI-derived features & Lightweight attention-KAN & \checkmark$^{*}$ & Few thousand$^{*}$ & 79.25 \\
-\textbf{ADHDNet (ours)} & \textbf{2026} & \textbf{3D sMRI + phenotype} & \textbf{DS-Conv3D + ECA + gated fusion} & \checkmark & \textbf{0.0716M} & \textbf{89.0} \\
+\textbf{ADHDNet (ours)} & \textbf{2026} & \textbf{3D sMRI + phenotype} & \textbf{DS-Conv3D + ECA + gated fusion} & \checkmark & \textbf{0.0716M} & \textbf{90.0}$^{\ddagger}$ \\
 \bottomrule
 \end{tabularx}}\par\vspace{2pt}
-{\raggedright\scriptsize NR: not reported; --: single modality. $^{\dagger}$Best per-site accuracy on ADHD-200 (NeuroIMAGE 76.19\%, NYU 69.92\%, PU 70.77\%). $^{*}$As described by the authors; exact parameter count not stated. EEC: EasyEnsemble classifier.\par}
+{\raggedright\scriptsize NR: not reported; --: single modality. $^{\dagger}$Best per-site accuracy on ADHD-200 (NeuroIMAGE 76.19\%, NYU 69.92\%, PU 70.77\%). $^{*}$As described by the authors; exact parameter count not stated. $^{\ddagger}$Held-out validation split; 5-fold cross-validation: $87.52\pm4.61\%$. EEC: EasyEnsemble classifier.\par}
 \end{table}
 
 %======================================================================
 \section{Discussion}
 %======================================================================
 
-The results demonstrate the feasibility of using a compact 3D CNN to jointly model structural MRI and phenotypic information for ADHD classification. ADHDNet contains only 71,558 trainable parameters, corresponding to a 94.8\% reduction relative to the standard Conv3D comparator under the same experimental framework, while achieving an AUC of 0.9535 on the held-out validation set.
+The results show that a compact 3D CNN can jointly model structural MRI and phenotypic information at a small fraction of the cost of a conventional 3D model. ADHDNet contains 71,552 trainable parameters and requires 0.19 GFLOPs per volume, 94.8\% fewer parameters and 97.2\% fewer FLOPs than the conventional Conv3D comparator, while reaching comparable cross-validated discrimination (AUC $0.951\pm0.017$ versus $0.957\pm0.020$) and a slightly higher mean accuracy ($87.52\%$ versus $86.51\%$).
 
-The parameter reduction is primarily achieved through depthwise-separable 3D convolution, while 3D ECA provides channel-wise feature recalibration with limited additional parameter overhead. The adaptive gating mechanism further allows the model to integrate MRI and phenotypic representations through sample-dependent weighting rather than simple concatenation. Together, these choices place ADHDNet within the emerging direction of lightweight ADHD models~\cite{deepika2025}, with a specific focus on volumetric structural MRI and phenotypic multimodal learning.
+The ablation study clarifies where this efficiency comes from and which components matter. Depthwise-separable convolution reduced the parameter count by a factor of 3.1 relative to an otherwise identical standard-convolution model without loss of accuracy, and the single 3D ECA module improved accuracy by three percentage points at a cost of three parameters. Gated fusion, in contrast, performed on par with concatenation on this split, so its benefit over simpler fusion remains to be established.
 
-It is important, however, not to interpret the 89\% accuracy as evidence that ADHDNet is universally superior to previously published approaches, since existing studies use different datasets, modalities, preprocessing procedures, class definitions, and validation protocols. The main contribution is therefore a \emph{parameter-efficient multimodal 3D architecture that combines depthwise-separable volumetric convolution and lightweight channel attention with adaptive fusion of structural MRI and phenotypic representations}, rather than the highest reported ADHD classification accuracy.
+The most important finding of the ablation, however, is the dominance of the phenotypic branch: the MRI-only variant performed close to chance, whereas every variant that retained the phenotypic branch achieved an AUC above 0.94. The phenotypic input includes the ADHD Index, a clinical symptom rating that is closely related to the diagnostic label itself, and site, which is correlated with class proportions in ADHD-200. The reported accuracy should therefore not be interpreted as evidence that structural MRI alone, as represented by ADHDNet, discriminates ADHD from controls. Nor should the 90\% held-out accuracy be read as evidence that ADHDNet is superior to previously published approaches, since those studies use different modalities, preprocessing, and protocols. The main contribution is instead a \emph{parameter-efficient multimodal 3D architecture} that combines depthwise-separable volumetric convolution and lightweight channel attention with adaptive fusion of structural MRI and phenotypic representations, together with an evaluation that makes the relative contributions of its components explicit.
 
 \subsection{Limitations and Future Work}
-Several limitations should be considered. First, the present study uses a single held-out validation split rather than an independent external test cohort; the reported results should therefore not be interpreted as evidence of external generalization. Second, although the dataset contains multiple acquisition sites, the current experiment does not explicitly evaluate cross-site generalization. Third, the simplified preprocessing pipeline, without skull stripping, registration, or atlas-based segmentation, may affect generalization to data acquired under different protocols. Fourth, the current work focuses on binary ADHD-versus-control classification and does not investigate ADHD subtypes. Fifth, component-wise ablation of the ECA modules, the phenotypic branch, and the adaptive fusion mechanism remains to be investigated in future experiments. Finally, the lightweight claim is currently supported by parameter count and FP32 weight storage; future evaluation should additionally report FLOPs, inference latency, and peak memory consumption under a standardized hardware and software environment.
+Several limitations should be considered. First, performance depends predominantly on the phenotypic features, in particular potentially on the ADHD Index; future work should evaluate the model without the ADHD Index and site to measure the diagnostic value of the MRI representation itself. Second, the held-out results come from a single split that was also used for early stopping and model selection, and the cross-validation and ablation metrics were likewise taken at the epoch of best validation AUC; none of these results constitute an independent external test. Third, although the dataset spans multiple acquisition sites, cross-site generalization was not explicitly evaluated, for example with leave-one-site-out validation. Fourth, the ablation used a single split without repeated runs or statistical testing, so small differences between variants are not conclusive. Fifth, the simple preprocessing pipeline, which resizes the provided volumes to $64^3$ without registration or atlas-based segmentation, may limit the anatomical information available to the MRI branch. Finally, latency was measured on a single GPU and the work addresses only binary ADHD-versus-control classification, not ADHD subtypes.
 
-%======================================================================
 \section{Conclusion}
 %======================================================================
 
-This paper presented ADHDNet, a lightweight multimodal 3D CNN for ADHD classification using structural MRI and phenotypic information. The architecture combines depthwise-separable 3D convolution, efficient channel attention, a compact phenotypic encoder, and adaptive gated fusion. On a multisite subset of ADHD-200 comprising 497 subjects, ADHDNet achieved 89.00\% accuracy and an AUC of 0.9535 on a held-out validation set, while using only 71,558 trainable parameters. This corresponds to a 94.8\% reduction in parameter count relative to the standard Conv3D comparator implemented under the same experimental framework. These results support the feasibility of parameter-efficient multimodal 3D modeling for ADHD classification. Future work will investigate component-wise ablation, standardized computational profiling, cross-site evaluation, and independent external validation.
+This paper presented ADHDNet, a lightweight multimodal 3D CNN for ADHD classification using structural MRI and phenotypic information. The architecture combines depthwise-separable 3D convolution, a single efficient channel attention module, a compact phenotypic encoder, and adaptive gated fusion. On a multisite subset of ADHD-200 comprising 497 subjects, ADHDNet achieved 90.00\% accuracy and an AUC of 0.9543 on a held-out validation set and $87.52\pm4.61\%$ accuracy in 5-fold cross-validation, using 71,552 trainable parameters and 0.19 GFLOPs per volume. Compared with a conventional Conv3D comparator, this corresponds to 94.8\% fewer parameters and 97.2\% fewer FLOPs at comparable cross-validated AUC. The ablation study showed that the phenotypic branch supplies most of the discriminative information, with the MRI-only variant performing close to chance. Future work will evaluate the model without the ADHD Index and site, investigate preprocessing that strengthens the MRI representation, and perform cross-site and independent external validation.
 
-%======================================================================
 % References (IEEE style, numbered in order of first citation)
 %======================================================================
 \bibliographystyle{IEEEtran}
