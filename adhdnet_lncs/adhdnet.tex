@@ -11,6 +11,8 @@
 \usepackage{booktabs}
 \usepackage{multirow}
 \usepackage{array}
+\usepackage{tabularx}
+\newcolumntype{Y}{>{\raggedright\arraybackslash}X}
 \usepackage{tikz}
 \usetikzlibrary{positioning,arrows.meta,calc}
 \usepackage{url}
@@ -297,24 +299,27 @@ The most important characteristic of ADHDNet is its compact parameter count: 0.0
 
 \subsection{Comparison with Existing Studies}
 
-The objective of the literature comparison is not to rank models based solely on reported accuracy, because the studies use different datasets, modalities, preprocessing pipelines, class definitions, and validation strategies. Lohani and Rana~\cite{lohani2023} used structural MRI-derived features and personal characteristics with conventional machine learning and reported 75\% maximum accuracy. Deepika et al.~\cite{deepika2025} investigated parameter-efficient ADHD classification and reported 79.25\% accuracy using a lightweight attention-driven KAN framework with only a few thousand parameters. Pedrollo et al.~\cite{pedrollo2026} used resting-state fMRI from 623 participants and reported $97.6\pm2.1\%$ accuracy for ADHD diagnosis using an ensemble approach. These results demonstrate the diversity of existing approaches; direct numerical comparison is inappropriate because the underlying modalities and experimental protocols differ (Table~\ref{tab:literature}). ADHDNet differs from these studies by explicitly combining volumetric structural MRI, phenotypic information, and a parameter-efficient 3D convolutional architecture.
+The objective of the literature comparison is not to rank models based solely on reported accuracy, because the studies use different datasets, modalities, preprocessing pipelines, class definitions, and validation strategies. Lohani and Rana~\cite{lohani2023} used structural MRI-derived features and personal characteristics with conventional machine learning and reported 75\% maximum accuracy. Deepika et al.~\cite{deepika2024} combined resting-state functional connectivity with phenotypic data and reported 77.59\% accuracy, with phenotypic information raising accuracy from 71.98\%. MATNet~\cite{ding2025matnet} integrated fMRI-derived spatiotemporal graph features with sMRI features extracted by 3D depthwise-separable convolution and attention, reporting per-site accuracies of up to 85.49\% on ADHD-200. Deepika et al.~\cite{deepika2025} subsequently investigated parameter-efficient ADHD classification and reported 79.25\% accuracy using a lightweight attention-driven KAN framework with only a few thousand parameters. Pedrollo et al.~\cite{pedrollo2026} used resting-state fMRI from 623 participants and reported $97.6\pm2.1\%$ accuracy for ADHD diagnosis using an ensemble approach. These results demonstrate the diversity of existing approaches; direct numerical comparison is inappropriate because the underlying modalities and experimental protocols differ (Table~\ref{tab:literature}). ADHDNet differs from these studies by explicitly combining volumetric structural MRI, phenotypic information, and a parameter-efficient 3D convolutional architecture.
 
 \begin{table}[t]
 \centering
 \caption{Comparison with selected recent ADHD studies. Accuracies are not directly comparable due to differing modalities, datasets, and protocols.}
 \label{tab:literature}
 \setlength{\tabcolsep}{3pt}
-\resizebox{\textwidth}{!}{%
-\begin{tabular}{lclllr}
+{\footnotesize
+\setlength{\tabcolsep}{2.2pt}
+\begin{tabularx}{\textwidth}{@{}>{\raggedright\arraybackslash}p{2.05cm} c Y >{\raggedright\arraybackslash}X c >{\raggedleft\arraybackslash}p{1.4cm} r@{}}
 \toprule
-Study & Year & Modality & Main approach & Parameters & Accuracy \\
+Study & Year & Modality & Model & \shortstack{Multi-\\modal} & Params & \shortstack{Acc.\\(\%)} \\
 \midrule
-Lohani \& Rana~\cite{lohani2023} & 2023 & sMRI + personal char. & Conventional ML & Not reported & 75.0\% \\
-Deepika et al.~\cite{deepika2025} & 2025 & ADHD-200-derived features & Lightweight attention + KAN & Few thousand & 79.25\% \\
-Pedrollo et al.~\cite{pedrollo2026} & 2026 & rs-fMRI & CNN ensemble & Not primary focus & $97.6\pm2.1\%$ \\
-\textbf{ADHDNet (ours)} & \textbf{2026} & \textbf{3D sMRI + phenotype} & \textbf{DS-Conv3D + ECA + gated fusion} & \textbf{0.0716M} & \textbf{89.0\%} \\
+Lohani \& Rana~\cite{lohani2023} & 2023 & sMRI + personal characteristics & SVM/RF/KNN & \checkmark & NR & 75.0 \\
+Deepika et al.~\cite{deepika2024} & 2024 & rs-fMRI + phenotypic & Multimodality model & \checkmark & NR & 77.59 \\
+MATNet~\cite{ding2025matnet} & 2025 & sMRI + fMRI & Multimodal attention & \checkmark & NR & $\leq$85$^{\dagger}$ \\
+Deepika et al.~\cite{deepika2025} & 2025 & MRI-derived features & Lightweight attention-KAN & \checkmark & Few thousand$^{*}$ & 79.25 \\
+\textbf{ADHDNet (ours)} & \textbf{2026} & \textbf{3D sMRI + phenotype} & \textbf{DS-Conv3D + ECA + gated fusion} & \checkmark & \textbf{0.0716M} & \textbf{89.0} \\
 \bottomrule
-\end{tabular}}
+\end{tabularx}}\par\vspace{2pt}
+{\raggedright\scriptsize NR: not reported. $^{\dagger}$Per-site accuracies on ADHD-200 (KKI 82.22\%, NeuroIMAGE 74.29\%, NYU 85.49\%). $^{*}$As reported by the authors; exact count not stated.\par}
 \end{table}
 
 %======================================================================
@@ -342,7 +347,7 @@ This paper presented ADHDNet, a lightweight adaptive multimodal 3D CNN for ADHD 
 %======================================================================
 % References (Springer LNCS style, splncs04 format)
 %======================================================================
-\begin{thebibliography}{10}
+\begin{thebibliography}{12}
 \providecommand{\url}[1]{\texttt{#1}}
 \providecommand{\doi}[1]{https://doi.org/#1}
 
@@ -351,6 +356,12 @@ Lohani, D.C., Rana, B.: ADHD diagnosis using structural brain MRI and personal c
 
 \bibitem{deepika2025}
 Deepika, Sharma, M., Arora, S.: Redefining parameter-efficiency in ADHD diagnosis: A lightweight attention-driven Kolmogorov--Arnold network with reduced parameter complexity and a novel activation function. Psychiatry Research: Neuroimaging \textbf{351}, 112016 (2025). \doi{10.1016/j.pscychresns.2025.112016}
+
+\bibitem{deepika2024}
+Deepika, Sharma, M., Arora, S.: Multimodality model investigating the impact of brain atlases, connectivity measures, and dimensionality reduction techniques on attention deficit hyperactivity disorder diagnosis using resting state functional connectivity. Journal of Medical Imaging \textbf{11}(6), 064502 (2024). \doi{10.1117/1.JMI.11.6.064502}
+
+\bibitem{ding2025matnet}
+Ding, Q., Sun, D., Zhu, S., Liu, Z., You, Y., He, X., Chen, F.: MATNet: a multimodal attention-based temporal network integrating functional MRI and structural MRI for accurate ADHD classification. Journal of Electronic Imaging \textbf{34}(4), 043008 (2025). \doi{10.1117/1.JEI.34.4.043008}
 
 \bibitem{pedrollo2026}
 Pedrollo, G.R., Franco, A.R., Balbinot, A.: Attention-deficit/hyperactivity disorder classification in functional magnetic resonance images with deep learning. Research on Biomedical Engineering \textbf{42}, 25 (2026). \doi{10.1007/s42600-026-00471-5}
