@@ -17,6 +17,16 @@
 \usetikzlibrary{positioning,arrows.meta,calc}
 \usepackage{url}
 \usepackage{cite}
+% IEEE-style citation lists: [3], [5], [7] and ranges [3]--[7]
+\renewcommand{\citepunct}{], [}
+\renewcommand{\citedash}{]--[}
+% IEEE-style reference list labels: [1], [2], ...
+\makeatletter
+\let\llncs@thebibliography\thebibliography
+\renewcommand{\thebibliography}[1]{%
+  \llncs@thebibliography{[#1]}% reserve label width for "[NN]"
+  \def\@biblabel##1{[##1]}}
+\makeatother
 \usepackage[hidelinks]{hyperref}
 \renewcommand\UrlFont{\color{blue}\rmfamily}
 
@@ -69,8 +79,8 @@ To address this gap, we propose \emph{ADHDNet}, a lightweight adaptive multimoda
 MRI-based machine learning has been widely investigated for ADHD classification~\cite{zhangjames2023,tian2024review,lohani2025review}. Earlier approaches generally relied on manually extracted neuroanatomical or functional connectivity features followed by conventional classifiers. Lohani and Rana~\cite{lohani2023} extracted gray-matter volume and cortical\-thickness features from structural MRI, combined them with personal characteristics, and achieved 75\% accuracy using conventional classifiers with repeated ten-fold cross\-validation. More recent studies have adopted deep learning to learn representations directly from neuroimaging data. CNN-based approaches have been investigated for fMRI-based ADHD classification~\cite{firouzi2024,gulhan2025}, graph-theoretical features of resting-state networks have been combined with ensemble classifiers~\cite{zamanzadeh2024}, graph convolutional networks with multi-head attention have been applied to hybrid-order brain networks~\cite{wu2025hagcn}, and Pedrollo et al.~\cite{pedrollo2026} reported CNN ensemble-based classification using resting-state fMRI in a cohort of 623 participants. These studies demonstrate the potential of deep neural networks for learning discriminative neuroimaging representations; however, many focus primarily on predictive performance achieved through increasingly complex architectures.
 
 \subsection{Multimodal ADHD Analysis}
-Phenotypic variables can provide information that is complementary to neuroimaging measurements. Age, sex, medication status, and clinical characteristics may capture information that is not directly represented in image features, and Lohani and Rana~\cite{lohani2023} provide evidence for the usefulness of combining structural MRI-derived characteristics with personal information. Deepika et al.~\cite{deepika2024} similarly combined resting-state functional connectivity with phenotypic data. A recent preprint has also explored 3D structural MRI and clinical phenotypic information using adaptive gated multimodal fusion, reporting 87\% accuracy on the Peking-1 subset of ADHD-200~\cite{TODO-preprint}% TODO: replace with the 2026 preprint reference
-. In contrast, the present work focuses specifically on reducing model complexity through depthwise-separable 3D convolution and lightweight channel attention while evaluating a multisite cohort.
+Phenotypic variables can provide information that is complementary to neuroimaging measurements. Age, sex, medication status, and clinical characteristics may capture information that is not directly represented in image features, and Lohani and Rana~\cite{lohani2023} provide evidence for the usefulness of combining structural MRI-derived characteristics with personal information. Deepika et al.~\cite{deepika2024} similarly combined resting-state functional connectivity with phenotypic data. A recent preprint has also explored 3D structural MRI and clinical phenotypic information using adaptive gated multimodal fusion, reporting 87\% accuracy on the Peking-1 subset of ADHD-200.% TODO: add \cite{...} once the 2026 preprint's bibliographic details are verified; remove this sentence if they cannot be.
+ In contrast, the present work focuses specifically on reducing model complexity through depthwise-separable 3D convolution and lightweight channel attention while evaluating a multisite cohort.
 
 \subsection{Lightweight and Parameter-Efficient ADHD Models}
 Model complexity is an important consideration when deep learning systems are intended for computationally constrained environments. Deepika et al.~\cite{deepika2025} explicitly investigated parameter efficiency for ADHD classification and proposed an attention-driven KAN architecture with only a few thousand parameters. Following this direction, the present study treats \emph{parameter efficiency as a primary design objective} rather than a secondary consideration. ADHDNet uses depthwise-separable 3D convolution to reduce the number of learnable parameters while retaining volumetric processing capability.
@@ -369,9 +379,9 @@ Several limitations should be considered. First, the present study uses a single
 This paper presented ADHDNet, a lightweight multimodal 3D CNN for ADHD classification using structural MRI and phenotypic information. The architecture combines depthwise-separable 3D convolution, efficient channel attention, a compact phenotypic encoder, and adaptive gated fusion. On a multisite subset of ADHD-200 comprising 497 subjects, ADHDNet achieved 89.00\% accuracy and an AUC of 0.9535 on a held-out validation set, while using only 71,558 trainable parameters. This corresponds to a 94.8\% reduction in parameter count relative to the standard Conv3D comparator implemented under the same experimental framework. These results support the feasibility of parameter-efficient multimodal 3D modeling for ADHD classification. Future work will investigate component-wise ablation, standardized computational profiling, cross-site evaluation, and independent external validation.
 
 %======================================================================
-% References (Springer LNCS style, splncs04 format)
+% References (IEEE style, numbered in order of first citation)
 %======================================================================
-\bibliographystyle{splncs04}
+\bibliographystyle{IEEEtran}
 \bibliography{references}
 
 \end{document}
