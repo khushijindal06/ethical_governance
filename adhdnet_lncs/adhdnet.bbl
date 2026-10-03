@@ -110,6 +110,29 @@ Deepika, M.~Sharma, and S.~Arora, ``Multimodality model investigating the
   resting state functional connectivity,'' \emph{Journal of Medical Imaging},
   vol.~11, no.~6, p. 064502, 2024, doi: 10.1117/1.JMI.11.6.064502.
 
+\bibitem{chollet2017xception}
+F.~Chollet, ``Xception: Deep learning with depthwise separable convolutions,''
+  in \emph{Proceedings of the IEEE Conference on Computer Vision and Pattern
+  Recognition (CVPR)}, 2017, pp. 1251--1258, doi: 10.1109/CVPR.2017.195.
+
+\bibitem{howard2017mobilenets}
+A.~G. Howard, M.~Zhu, B.~Chen, D.~Kalenichenko, W.~Wang, T.~Weyand,
+  M.~Andreetto, and H.~Adam, ``{MobileNets}: Efficient convolutional neural
+  networks for mobile vision applications,'' arXiv preprint arXiv:1704.04861,
+  2017.
+
+\bibitem{wang2020eca}
+Q.~Wang, B.~Wu, P.~Zhu, P.~Li, W.~Zuo, and Q.~Hu, ``{ECA-Net}: Efficient
+  channel attention for deep convolutional neural networks,'' in
+  \emph{Proceedings of the IEEE/CVF Conference on Computer Vision and Pattern
+  Recognition (CVPR)}, 2020, pp. 11\,534--11\,542, doi:
+  10.1109/CVPR42600.2020.01155.
+
+\bibitem{arevalo2017gmu}
+J.~Arevalo, T.~Solorio, M.~Montes-y G{\'o}mez, and F.~A. Gonz{\'a}lez, ``Gated
+  multimodal units for information fusion,'' in \emph{International Conference
+  on Learning Representations (ICLR), Workshop Track}, 2017.
+
 \bibitem{adhd200consortium2012}
 {The ADHD-200 Consortium}, ``The {ADHD-200} {Consortium}: a model to advance
   the translational potential of neuroimaging in clinical neuroscience,''
@@ -122,40 +145,17 @@ P.~Bellec, C.~Chu, F.~Chouinard-Decorte, Y.~Benhajali, D.~S. Margulies, and
   \emph{NeuroImage}, vol. 144, pp. 275--286, 2017, doi:
   10.1016/j.neuroimage.2016.06.034.
 
-\bibitem{chollet2017xception}
-F.~Chollet, ``Xception: Deep learning with depthwise separable convolutions,''
-  in \emph{Proceedings of the IEEE Conference on Computer Vision and Pattern
-  Recognition (CVPR)}, 2017, pp. 1251--1258, doi: 10.1109/CVPR.2017.195.
-
-\bibitem{howard2017mobilenets}
-A.~G. Howard, M.~Zhu, B.~Chen, D.~Kalenichenko, W.~Wang, T.~Weyand,
-  M.~Andreetto, and H.~Adam, ``{MobileNets}: Efficient convolutional neural
-  networks for mobile vision applications,'' arXiv preprint arXiv:1704.04861,
-  2017.
-
 \bibitem{ioffe2015bn}
 S.~Ioffe and C.~Szegedy, ``Batch normalization: Accelerating deep network
   training by reducing internal covariate shift,'' in \emph{Proceedings of the
   32nd International Conference on Machine Learning (ICML)}, 2015, pp.
   448--456.
 
-\bibitem{wang2020eca}
-Q.~Wang, B.~Wu, P.~Zhu, P.~Li, W.~Zuo, and Q.~Hu, ``{ECA-Net}: Efficient
-  channel attention for deep convolutional neural networks,'' in
-  \emph{Proceedings of the IEEE/CVF Conference on Computer Vision and Pattern
-  Recognition (CVPR)}, 2020, pp. 11\,534--11\,542, doi:
-  10.1109/CVPR42600.2020.01155.
-
 \bibitem{srivastava2014dropout}
 N.~Srivastava, G.~Hinton, A.~Krizhevsky, I.~Sutskever, and R.~Salakhutdinov,
   ``Dropout: A simple way to prevent neural networks from overfitting,''
   \emph{Journal of Machine Learning Research}, vol.~15, no.~56, pp. 1929--1958,
   2014.
-
-\bibitem{arevalo2017gmu}
-J.~Arevalo, T.~Solorio, M.~Montes-y G{\'o}mez, and F.~A. Gonz{\'a}lez, ``Gated
-  multimodal units for information fusion,'' in \emph{International Conference
-  on Learning Representations (ICLR), Workshop Track}, 2017.
 
 \bibitem{paszke2019pytorch}
 A.~Paszke, S.~Gross, F.~Massa, A.~Lerer, J.~Bradbury, G.~Chanan, T.~Killeen,
