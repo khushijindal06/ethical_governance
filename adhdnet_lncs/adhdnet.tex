@@ -15,6 +15,7 @@
 \newcolumntype{Y}{>{\raggedright\arraybackslash}X}
 \usepackage{tikz}
 \usetikzlibrary{positioning,arrows.meta,calc}
+\definecolor{adhdblue}{HTML}{2A6FB0}
 \usepackage{url}
 \usepackage{cite}
 % IEEE-style citation lists: [3], [5], [7] and ranges [3]--[7]
@@ -64,11 +65,10 @@ However, relatively limited work has investigated parameter-efficient multimodal
 
 To address this gap, we propose \emph{ADHDNet}, a lightweight adaptive multimodal 3D CNN designed to jointly exploit volumetric structural MRI and phenotypic information under a constrained parameter budget. The architecture combines depthwise-separable 3D convolution for efficient volumetric feature extraction, 3D efficient channel attention for feature recalibration, and adaptive gated fusion for multimodal integration. The main contributions are as follows:
 \begin{enumerate}
-  \item A \textbf{lightweight 3D MRI encoder} based on depthwise-separable Conv3D operations for parameter-efficient volumetric feature extraction.
-  \item Integration of a \textbf{3D efficient channel attention (ECA)} mechanism for channel-wise feature recalibration with limited additional parameters.
-  \item Integration of \textbf{adaptive gated fusion} of structural MRI and phenotypic representations within this parameter-efficient 3D architecture.
-  \item Evaluation on a \textbf{multisite subset of the ADHD-200 dataset} using structural MRI and phenotypic information.
-  \item Explicit analysis of \textbf{parameter efficiency}, including comparison with a conventional Conv3D multimodal architecture.
+  \item A \textbf{lightweight 3D MRI encoder} based on depthwise-separable Conv3D for parameter-efficient volumetric representation learning.
+  \item Integration of lightweight \textbf{3D efficient channel attention (ECA)} for channel-wise feature recalibration.
+  \item An \textbf{adaptive gated fusion} mechanism for sample-dependent integration of structural MRI and phenotypic representations.
+  \item An \textbf{explicit evaluation of parameter efficiency} against a conventional multimodal Conv3D architecture on a multisite ADHD-200 cohort.
 \end{enumerate}
 
 %======================================================================
@@ -131,7 +131,7 @@ Five phenotypic variables were incorporated: age, sex, medication status, site, 
 \section{Proposed ADHDNet}
 %======================================================================
 
-ADHDNet comprises three main components: (i) a lightweight 3D MRI encoder, (ii) a compact phenotypic encoder, and (iii) an adaptive gated fusion module for multimodal representation learning, followed by binary classification. The overall processing pipeline is illustrated in Fig.~\ref{fig:arch}.
+ADHDNet consists of a lightweight 3D MRI encoder, a compact phenotypic encoder, and an adaptive gated fusion module (Fig.~\ref{fig:arch}). A $1\times64\times64\times64$ sMRI volume is processed through three depthwise-separable Conv3D blocks with channel progression $24\rightarrow48\rightarrow96$, followed by 3D ECA, global average pooling, and projection to a 128-dimensional MRI representation. In parallel, five phenotypic features are encoded using a $5\rightarrow32\rightarrow32$ MLP and projected to the same 128-dimensional space. The two representations are integrated through adaptive gated fusion and passed to a $128\rightarrow64\rightarrow2$ classification head. The complete model contains 71,558 trainable parameters. Each component is described below.
 
 \begin{figure}[t]
 \centering
@@ -224,7 +224,7 @@ Parameter efficiency is a central design consideration of ADHDNet. The proposed 
 \begin{equation}
 \frac{1{,}376{,}080 - 71{,}558}{1{,}376{,}080}\times 100 \approx 94.8\%.
 \end{equation}
-Stored as 32-bit floating-point values, the trained weights of ADHDNet occupy $71{,}558\times4 = 286{,}232$ bytes ($\approx$0.27\,MiB), compared with $1{,}376{,}080\times4 = 5{,}504{,}320$ bytes ($\approx$5.25\,MiB) for the comparator. These figures describe FP32 weight storage only, not runtime memory usage. The efficiency results are summarized in Table~\ref{tab:efficiency} (Sect.~\ref{sec:efficiency}).
+Stored as 32-bit floating-point values, the trained weights of ADHDNet occupy $71{,}558\times4 = 286{,}232$ bytes ($\approx$0.27\,MiB), compared with $1{,}376{,}080\times4 = 5{,}504{,}320$ bytes ($\approx$5.25\,MiB) for the comparator. These figures describe FP32 weight storage only, not runtime memory usage. The efficiency results are visualized in Fig.~\ref{fig:results}(b) (Sect.~\ref{sec:efficiency}).
 
 %======================================================================
 \section{Experimental Setup}
@@ -253,44 +253,70 @@ Receiver operating characteristic (ROC) analysis was also performed and the area
 
 \subsection{Classification Performance}
 
-Table~\ref{tab:results} summarizes the classification performance of ADHDNet on the held-out validation set, and the corresponding confusion matrix is reported in Table~\ref{tab:confusion}. ADHDNet achieved an accuracy of 89.00\% and an AUC of 0.9535, with a sensitivity of 93.33\%, specificity of 85.45\%, precision of 84.00\%, and F1-score of 0.88. The model correctly classified 42 of 45 ADHD subjects and 47 of 55 controls; 3 ADHD subjects were misclassified as controls and 8 controls as ADHD. The relatively high sensitivity indicates that most ADHD subjects in the validation set were correctly identified, while the specificity indicates that the model also correctly rejected a substantial proportion of control subjects.
+Table~\ref{tab:results} summarizes the classification performance of ADHDNet on the held-out validation set. ADHDNet achieved an accuracy of 89.00\% and an AUC of 0.9535, with a sensitivity of 93.33\%, specificity of 85.45\%, precision of 84.00\%, NPV of 94.00\%, and F1-score of 0.88.
 
 \begin{table}[t]
 \centering
-\begin{minipage}[t]{0.42\textwidth}
-\centering
-\caption{Validation performance of ADHDNet.}
+\caption{Classification performance of ADHDNet on the held-out validation set ($n=100$; 45 ADHD, 55 controls). ADHD is the positive class.}
 \label{tab:results}
-\begin{tabular}{lr}
+\setlength{\tabcolsep}{5pt}
+\begin{tabular}{ccccccc}
 \toprule
-Metric & ADHDNet \\
+Accuracy & AUC & Sensitivity & Specificity & Precision & NPV & F1-score \\
 \midrule
-Accuracy    & 89.00\% \\
-AUC         & 0.9535 \\
-Sensitivity & 93.33\% \\
-Specificity & 85.45\% \\
-Precision   & 84.00\% \\
-NPV         & 94.00\% \\
-F1-score    & 0.88 \\
+89.00\% & 0.9535 & 93.33\% & 85.45\% & 84.00\% & 94.00\% & 0.88 \\
 \bottomrule
 \end{tabular}
-\end{minipage}\hfill
-\begin{minipage}[t]{0.52\textwidth}
-\centering
-\caption{Confusion matrix on the validation set ($n=100$).}
-\label{tab:confusion}
-\begin{tabular}{llcc}
-\toprule
- & & \multicolumn{2}{c}{Predicted} \\
-\cmidrule(lr){3-4}
- & & ADHD & Control \\
-\midrule
-\multirow{2}{*}{Actual} & ADHD    & 42 (TP) & 3 (FN) \\
-                        & Control & 8 (FP)  & 47 (TN) \\
-\bottomrule
-\end{tabular}
-\end{minipage}
 \end{table}
+
+\begin{figure}[t]
+\centering
+\begin{minipage}[b]{0.43\textwidth}
+\centering
+\begin{tikzpicture}[
+  cell/.style={minimum width=15mm, minimum height=11mm, draw=white, line width=1.5pt, align=center, font=\small},
+  lab/.style={font=\footnotesize}]
+% fill intensity = row-normalized rate (single-hue sequential scale)
+\node[cell, fill=adhdblue!93, text=white] (tp) at (0,0)      {\textbf{42}\\[-1pt]{\scriptsize 93.3\%}};
+\node[cell, fill=adhdblue!7]              (fn) at (1.5,0)    {\textbf{3}\\[-1pt]{\scriptsize 6.7\%}};
+\node[cell, fill=adhdblue!15]             (fp) at (0,-1.1)   {\textbf{8}\\[-1pt]{\scriptsize 14.5\%}};
+\node[cell, fill=adhdblue!85, text=white] (tn) at (1.5,-1.1) {\textbf{47}\\[-1pt]{\scriptsize 85.5\%}};
+\node[lab, above=1pt of tp] {ADHD};
+\node[lab, above=1pt of fn] {Control};
+\node[lab, font=\footnotesize\bfseries] at (0.75,1.2) {Predicted};
+\node[lab, left=1pt of tp] {ADHD};
+\node[lab, left=1pt of fp] {Control};
+\node[lab, font=\footnotesize\bfseries, rotate=90] at (-2.25,-0.55) {Actual};
+\end{tikzpicture}\\[2pt]
+{\small (a)}
+\end{minipage}\hfill
+\begin{minipage}[b]{0.55\textwidth}
+\centering
+\begin{tikzpicture}
+% horizontal bars, 1M parameters = 27 mm
+\def\u{2.7}
+\foreach \x in {0,0.5,1.0,1.5} {
+  \draw[black!12] (\x*\u,-0.45) -- (\x*\u,1.55);
+  \node[font=\footnotesize, below] at (\x*\u,-0.45) {\x};
+}
+\draw[black!60] (0,-0.45) -- (1.5*\u,-0.45);
+\fill[black!35] (0,0.85) rectangle (1.376*\u,1.25);
+\fill[adhdblue] (0,-0.05) rectangle (0.0716*\u,0.35);
+\node[font=\footnotesize, anchor=east] at (-0.05,1.05) {Std.\ Conv3D};
+\node[font=\footnotesize, anchor=east] at (-0.05,0.15) {ADHDNet};
+\node[font=\scriptsize, anchor=south east] at (1.376*\u,1.25) {1.376M \,|\, 5.25\,MiB};
+\node[font=\scriptsize, anchor=west] at (0.0716*\u+0.05,0.15) {0.0716M \,|\, 0.27\,MiB};
+\node[font=\footnotesize] at (0.75*\u,-1.05) {Trainable parameters (M)};
+\end{tikzpicture}\\[2pt]
+{\small (b)}
+\end{minipage}
+\caption{(a) Confusion matrix of ADHDNet on the held-out validation set ($n=100$); cell shading and percentages are normalized by the actual class. (b) Trainable parameters of ADHDNet and the standard Conv3D multimodal comparator, a 94.8\% reduction; labels give the corresponding FP32 weight storage (parameters $\times$ 4 bytes), not runtime memory usage.}
+\label{fig:results}
+\end{figure}
+
+\subsection{Per-Class Error Analysis}
+
+The confusion matrix in Fig.~\ref{fig:results}(a) shows how the errors are distributed between the two classes. ADHDNet correctly classified 42 of 45 ADHD subjects and 47 of 55 controls. Of the 11 misclassifications, 8 were controls predicted as ADHD and 3 were ADHD subjects predicted as controls. The model therefore errs more often towards false positives than false negatives, which is reflected in the higher sensitivity (93.33\%) than specificity (85.45\%) and in the higher NPV (94.00\%) than precision (84.00\%). In a screening-support setting, this asymmetry means that a negative prediction was more reliable than a positive one on this validation cohort.
 
 \subsection{ROC Analysis}
 
@@ -299,36 +325,9 @@ The model achieved an AUC of 0.9535 on the held-out validation cohort. However, 
 \subsection{Computational Efficiency}
 \label{sec:efficiency}
 
-Because parameter efficiency is a primary design objective of ADHDNet, model complexity was explicitly evaluated against a standard Conv3D multimodal comparator implemented under the same experimental framework (Table~\ref{tab:efficiency}). ADHDNet contains 0.0716M trainable parameters compared with 1.376M for the comparator, corresponding to a 94.8\% reduction in parameter count (a factor of 19.2). Correspondingly, its FP32 weight storage falls from approximately 5.25\,MiB to 0.27\,MiB. These results show that multimodal 3D MRI analysis does not necessarily require a large number of trainable parameters.
+Because parameter efficiency is a primary design objective of ADHDNet, model complexity was explicitly evaluated against a standard Conv3D multimodal comparator implemented under the same experimental framework (Fig.~\ref{fig:results}(b)). ADHDNet contains 0.0716M trainable parameters compared with 1.376M for the comparator, corresponding to a 94.8\% reduction in parameter count (a factor of 19.2). Correspondingly, its FP32 weight storage falls from approximately 5.25\,MiB to 0.27\,MiB. These results show that multimodal 3D MRI analysis does not necessarily require a large number of trainable parameters.
 
-\begin{table}[t]
-\centering
-\caption{Computational efficiency of the proposed model. FP32 weight storage is the size of the trained weights stored as 32-bit floats (parameters $\times$ 4 bytes); it is not runtime memory usage.}
-\label{tab:efficiency}
-\begin{tabular}{lrrr}
-\toprule
-Model & Parameters & Parameter reduction & FP32 weight storage \\
-\midrule
-Standard Conv3D multimodal & 1.376M & --- & $\approx$5.25\,MiB \\
-\textbf{ADHDNet} & \textbf{0.0716M} & \textbf{94.8\%} & \textbf{$\approx$0.27\,MiB} \\
-\bottomrule
-\end{tabular}
-\end{table}
-
-% TODO: once measured, add GFLOPs and inference time per sample (see measure_efficiency.py):
-% \begin{table}[t]
-% \centering
-% \caption{Computational cost per $64\times64\times64$ input (batch size 1, <hardware>).}
-% \label{tab:cost}
-% \begin{tabular}{lrrr}
-% \toprule
-% Model & Parameters & GFLOPs & Inference time/sample (ms) \\
-% \midrule
-% Standard Conv3D multimodal & 1.376M & -- & -- \\
-% \textbf{ADHDNet} & \textbf{0.0716M} & -- & -- \\
-% \bottomrule
-% \end{tabular}
-% \end{table}
+% TODO: once measured, add GFLOPs and inference time per sample (see measure_efficiency.py).
 
 \subsection{Comparison with Existing Studies}
 
