@@ -46,7 +46,7 @@
 \maketitle
 
 \begin{abstract}
-Attention-Deficit/Hyperactivity Disorder (ADHD) is a neurodevelopmental disorder whose diagnosis primarily relies on behavioral and clinical assessment, motivating the investigation of neuroimaging-based computational approaches. However, many deep learning models for neuroimaging employ increasingly complex architectures with substantial parameter and computational requirements. This work presents \emph{ADHDNet}, a lightweight multimodal 3D convolutional neural network for ADHD classification using structural magnetic resonance imaging (sMRI) and phenotypic information. The proposed framework employs depthwise-separable 3D convolutional blocks to reduce model parameters while retaining volumetric feature extraction capability. A three-dimensional efficient channel attention mechanism recalibrates informative feature channels, while an adaptive gated fusion module dynamically combines MRI-derived and phenotypic representations. Experiments were conducted on a multisite subset of the ADHD-200 dataset comprising 497 subjects after excluding a site without ADHD cases. Structural MRI volumes were resized to $64\times64\times64$, normalized, and combined with five phenotypic features. The proposed model contains only 71,558 trainable parameters (0.0716M). On a stratified held-out validation set, ADHDNet achieved 89.00\% accuracy and an AUC of 0.9535, with a sensitivity of 93.33\%, specificity of 85.45\%, precision of 84.00\%, and F1-score of 0.88. Compared with a standard Conv3D multimodal comparator containing 1.376M parameters, ADHDNet reduces the parameter count by approximately 94.8\% and its FP32 weight storage from about 5.25\,MiB to 0.27\,MiB. These results indicate that a compact multimodal 3D architecture can support ADHD classification while substantially reducing model complexity.
+Attention-Deficit/Hyperactivity Disorder (ADHD) is a neurodevelopmental disorder whose diagnosis primarily relies on behavioral and clinical assessment, motivating the investigation of neuroimaging-based computational approaches. However, many deep learning models for neuroimaging employ increasingly complex architectures with substantial parameter and computational requirements. This work presents \emph{ADHDNet}, a lightweight multimodal 3D convolutional neural network for ADHD classification using structural magnetic resonance imaging (sMRI) and phenotypic information. The proposed framework employs depthwise-separable 3D convolutional blocks to reduce model parameters while retaining volumetric feature extraction capability. Three-dimensional efficient channel attention is applied within each encoder block to recalibrate informative feature channels, while an adaptive gated fusion module dynamically combines MRI-derived and phenotypic representations. Experiments were conducted on a multisite subset of the ADHD-200 dataset comprising 497 subjects after excluding a site without ADHD cases. Structural MRI volumes were resized to $64\times64\times64$, normalized, and combined with five phenotypic features. The proposed model contains only 71,558 trainable parameters (0.0716M). On a stratified held-out validation set, ADHDNet achieved 89.00\% accuracy and an AUC of 0.9535, with a sensitivity of 93.33\%, specificity of 85.45\%, precision of 84.00\%, and F1-score of 0.88. Compared with a standard Conv3D multimodal comparator containing 1.376M parameters, ADHDNet reduces the parameter count by approximately 94.8\% and its FP32 weight storage from about 5.25\,MiB to 0.27\,MiB. These results indicate that a compact multimodal 3D architecture can support ADHD classification while substantially reducing model complexity.
 
 \keywords{ADHD \and Structural MRI \and Multimodal learning \and 3D CNN \and Depthwise-separable convolution \and Efficient channel attention \and Lightweight deep learning}
 \end{abstract}
@@ -66,7 +66,7 @@ However, relatively limited work has investigated parameter-efficient multimodal
 To address this gap, we propose \emph{ADHDNet}, a lightweight adaptive multimodal 3D CNN designed to jointly exploit volumetric structural MRI and phenotypic information under a constrained parameter budget. The architecture combines depthwise-separable 3D convolution for efficient volumetric feature extraction, 3D efficient channel attention for feature recalibration, and adaptive gated fusion for multimodal integration. The main contributions are as follows:
 \begin{enumerate}
   \item A \textbf{lightweight 3D MRI encoder} based on depthwise-separable Conv3D for parameter-efficient volumetric representation learning.
-  \item Integration of lightweight \textbf{3D efficient channel attention (ECA)} for channel-wise feature recalibration.
+  \item Integration of lightweight \textbf{3D efficient channel attention (ECA)} within the hierarchical MRI encoder for channel-wise feature recalibration.
   \item An \textbf{adaptive gated fusion} mechanism for sample-dependent integration of structural MRI and phenotypic representations.
   \item An \textbf{explicit evaluation of parameter efficiency} against a conventional multimodal Conv3D architecture on a multisite ADHD-200 cohort.
 \end{enumerate}
@@ -131,53 +131,55 @@ Five phenotypic variables were incorporated: age, sex, medication status, site, 
 \section{Proposed ADHDNet}
 %======================================================================
 
-ADHDNet consists of a lightweight 3D MRI encoder, a compact phenotypic encoder, and an adaptive gated fusion module (Fig.~\ref{fig:arch}). A $1\times64\times64\times64$ sMRI volume is processed through three depthwise-separable Conv3D blocks with channel progression $24\rightarrow48\rightarrow96$, followed by 3D ECA, global average pooling, and projection to a 128-dimensional MRI representation. In parallel, five phenotypic features are encoded by a $5\rightarrow32\rightarrow32$ MLP. A gating network computes fusion weights from the concatenated 160-dimensional vector of the MRI and phenotypic representations, the phenotypic representation is projected to 128 dimensions, and the two 128-dimensional representations are combined by gated element-wise fusion and passed to a $128\rightarrow64\rightarrow2$ classification head. The complete model contains 71,558 trainable parameters. Each component is described below.
+ADHDNet consists of a lightweight 3D MRI encoder, a compact phenotypic encoder, and an adaptive gated fusion module (Fig.~\ref{fig:arch}). A $1\times64\times64\times64$ sMRI volume is processed through three depthwise-separable Conv3D blocks with channel progression $24\rightarrow48\rightarrow96$, each containing its own 3D ECA module and max pooling, followed by global average pooling and projection to a 128-dimensional MRI representation. In parallel, five phenotypic features are encoded by a $5\rightarrow32\rightarrow32$ MLP. A gating network computes fusion weights from the concatenated 160-dimensional vector of the MRI and phenotypic representations, the phenotypic representation is projected to 128 dimensions, and the two 128-dimensional representations are combined by gated element-wise fusion and passed to a $128\rightarrow64\rightarrow2$ classification head. The complete model contains 71,558 trainable parameters. Each component is described below.
 
 \begin{figure}[t]
 \centering
 \resizebox{\textwidth}{!}{%
 \begin{tikzpicture}[
-  node distance=5mm and 3.5mm,
-  blk/.style={draw, rounded corners=2pt, align=center, font=\small, minimum height=10mm, inner sep=2.5pt},
-  io/.style={blk, fill=gray!12},
+  blk/.style={draw, rounded corners=2pt, align=center, font=\small, minimum height=12mm, minimum width=20mm, inner sep=2.5pt},
+  io/.style={blk, fill=gray!12, minimum width=16mm},
   enc/.style={blk, fill=blue!8},
   fus/.style={blk, fill=orange!12},
+  dim/.style={font=\scriptsize, text=black!65},
   arr/.style={-{Stealth[length=2mm]}, thick}
 ]
-\node[io]  (mri)  {3D sMRI\\$1\times64^3$};
-\node[enc, right=of mri] (b1) {DS-Conv3D\\block 1\\(24)};
-\node[enc, right=of b1]  (b2) {DS-Conv3D\\block 2\\(48)};
-\node[enc, right=of b2]  (b3) {DS-Conv3D\\block 3\\(96)};
-\node[enc, right=of b3]  (eca) {3D\\ECA};
-\node[enc, right=of eca] (gap) {GAP +\\FC\\(128)};
-
-\node[io,  below=10mm of mri] (ph) {Phenotype\\(5)};
-\node[enc, right=of ph] (mlp) {MLP\\$5\!\rightarrow\!32\!\rightarrow\!32$};
-\node[enc] (proj) at (gap |- mlp) {FC\\(128)};
-
-\node[fus, anchor=west] (gate) at ($(gap.east)!0.5!(proj.east)+(9mm,0)$) {Adaptive\\gated\\fusion};
-\node[fus, right=of gate] (cls) {Classifier\\$128\!\rightarrow\!64$\\$\rightarrow\!2$};
-\node[io,  right=of cls] (out) {ADHD /\\Control};
-
+% ---- MRI branch: three DS-Conv3D blocks, each with its own ECA and max pooling
+\node[io]  (mri) at (0,0)    {3D sMRI\\$1\times64^3$};
+\node[enc] (b1)  at (2.75,0) {DS-Conv3D block 1\\+ ECA + MaxPool\\{\footnotesize $\rightarrow 24\times32^3$}};
+\node[enc] (b2)  at (6.05,0) {DS-Conv3D block 2\\+ ECA + MaxPool\\{\footnotesize $\rightarrow 48\times16^3$}};
+\node[enc] (b3)  at (9.35,0) {DS-Conv3D block 3\\+ ECA + MaxPool\\{\footnotesize $\rightarrow 96\times8^3$}};
+\node[enc] (gap) at (12.45,0) {GAP + FC\\$96\!\rightarrow\!128$};
 \draw[arr] (mri) -- (b1);
 \draw[arr] (b1) -- (b2);
 \draw[arr] (b2) -- (b3);
-\draw[arr] (b3) -- (eca);
-\draw[arr] (eca) -- (gap);
+\draw[arr] (b3) -- (gap);
+% ---- phenotype branch
+\node[io]  (ph)   at (0,-3.5)    {Phenotype\\(5)};
+\node[enc] (mlp)  at (2.75,-3.5) {MLP\\$5\!\rightarrow\!32\!\rightarrow\!32$};
+\node[enc] (proj) at (12.45,-3.5) {FC\\$32\!\rightarrow\!128$};
 \draw[arr] (ph) -- (mlp);
-\draw[arr] (mlp) -- (proj);
-\draw[arr] (gap.east) -- node[above, font=\scriptsize, sloped]{$z_{MRI}$} (gate.north west);
-\draw[arr] (proj.east) -- node[below, font=\scriptsize, sloped]{$z_{P}$} (gate.south west);
-\draw[arr] (gate) -- node[above, font=\scriptsize]{$z_F$} (cls);
+\draw[arr] (mlp) -- node[dim, below, pos=0.5]{$h_P\in\mathbb{R}^{32}$} (proj);
+% ---- gated fusion
+\node[fus] (gate) at (12.45,-1.75) {Gate $g=\sigma(\cdot)$\\on $[z_{MRI};h_P]$\\{\footnotesize ($160\!\rightarrow\!128$)}};
+\node[fus] (fuse) at (15.3,-1.75)  {Fusion\\$g\odot z_{MRI}$\\$+\,(1-g)\odot z_P$};
+\node[fus] (cls)  at (17.95,-1.75) {Classifier\\$128\!\rightarrow\!64$\\$\rightarrow\!2$};
+\node[io]  (out)  at (20.3,-1.75)  {ADHD /\\Control};
+\draw[arr] (gap) -- node[dim, right]{$z_{MRI}$} (gate);
+\draw[arr] (mlp.north) |- (gate.west);
+\draw[arr] (gate) -- node[dim, above]{$g$} (fuse);
+\draw[arr] (gap.east) -| node[dim, above, pos=0.25]{$z_{MRI}\in\mathbb{R}^{128}$} (fuse.north);
+\draw[arr] (proj.east) -| node[dim, below, pos=0.25]{$z_P\in\mathbb{R}^{128}$} (fuse.south);
+\draw[arr] (fuse) -- node[dim, above]{$z_F$} (cls);
 \draw[arr] (cls) -- (out);
 \end{tikzpicture}}
-\caption{Overview of ADHDNet. The sMRI branch uses three depthwise-separable (DS) Conv3D blocks followed by 3D efficient channel attention (ECA), global average pooling (GAP), and projection to a 128-dimensional embedding. The phenotypic branch uses a compact MLP. Both embeddings are combined by adaptive gated fusion before classification.}
+\caption{Overview of ADHDNet as implemented. The sMRI branch consists of three depthwise-separable (DS) Conv3D blocks (24, 48 and 96 channels); each block applies batch normalization, ReLU, 3D efficient channel attention (ECA) and $2\times2\times2$ max pooling, so channel recalibration is performed at every stage. Global average pooling (GAP) and a linear projection give $z_{MRI}\in\mathbb{R}^{128}$. The phenotypic MLP gives $h_P\in\mathbb{R}^{32}$. The gate is computed from the 160-dimensional concatenation $[z_{MRI};h_P]$, while $h_P$ is separately projected to $z_P\in\mathbb{R}^{128}$ for gated element-wise fusion.}
 \label{fig:arch}
 \end{figure}
 
 \subsection{Lightweight 3D MRI Encoder}
 
-The imaging branch uses three depthwise-separable 3D convolutional blocks with channel progression $1\rightarrow24\rightarrow48\rightarrow96$ and spatial downsampling after each block. Depthwise-separable convolution~\cite{chollet2017xception,howard2017mobilenets} decomposes a conventional convolution into (i) a depthwise spatial convolution and (ii) a pointwise $1\times1\times1$ convolution. For a conventional 3D convolution with kernel size $K$, the parameter count is approximately
+The imaging branch consists of three depthwise-separable 3D convolutional blocks with channel progression $1\rightarrow24\rightarrow48\rightarrow96$. Each block consists of a depthwise-separable Conv3D operation followed by batch normalization, ReLU activation, 3D efficient channel attention (ECA; Sect.~\ref{sec:eca}), and $2\times2\times2$ max pooling. Channel-wise feature recalibration is therefore performed at each hierarchical feature-extraction stage, and the spatial resolution is halved by each block ($64^3\rightarrow32^3\rightarrow16^3\rightarrow8^3$). Depthwise-separable convolution~\cite{chollet2017xception,howard2017mobilenets} decomposes a conventional convolution into (i) a depthwise spatial convolution and (ii) a pointwise $1\times1\times1$ convolution. For a conventional 3D convolution with kernel size $K$, the parameter count is approximately
 \begin{equation}
 P_{\text{conv}} = K^3 C_{in} C_{out},
 \end{equation}
@@ -185,11 +187,12 @@ whereas depthwise-separable convolution requires approximately
 \begin{equation}
 P_{\text{DS}} = K^3 C_{in} + C_{in} C_{out}.
 \end{equation}
-Since the second expression can be considerably smaller when $C_{out}$ is large, depthwise-separable convolution provides a mechanism for reducing the number of trainable parameters. After the three convolutional blocks, adaptive global average pooling produces a 96-dimensional representation, and a fully connected projection maps it to a 128-dimensional MRI embedding.
+Since the second expression can be considerably smaller when $C_{out}$ is large, depthwise-separable convolution provides a mechanism for reducing the number of trainable parameters. After the third block, adaptive global average pooling of the $96\times8\times8\times8$ feature map produces a 96-dimensional representation, which is projected to a 128-dimensional MRI embedding.
 
 \subsection{Efficient Channel Attention}
+\label{sec:eca}
 
-Following volumetric feature extraction, 3D ECA is applied to recalibrate the learned feature channels before global pooling and projection. To improve feature recalibration without introducing a large parameter overhead, a three-dimensional extension of efficient channel attention (ECA)~\cite{wang2020eca} is incorporated. The attention operation estimates channel importance from globally pooled feature responses and applies channel-wise weights to the volumetric feature maps:
+Within each encoder block, 3D ECA recalibrates the channels produced by the convolution before max pooling, giving three ECA modules in total. To improve feature recalibration without introducing a large parameter overhead, a three-dimensional extension of efficient channel attention (ECA)~\cite{wang2020eca} is incorporated. The attention operation estimates channel importance from globally pooled feature responses and applies channel-wise weights to the volumetric feature maps:
 \begin{equation}
 F_{att} = A(F) \odot F,
 \end{equation}
@@ -370,7 +373,7 @@ The parameter reduction is primarily achieved through depthwise-separable 3D con
 It is important, however, not to interpret the 89\% accuracy as evidence that ADHDNet is universally superior to previously published approaches, since existing studies use different datasets, modalities, preprocessing procedures, class definitions, and validation protocols. The main contribution is therefore a \emph{parameter-efficient multimodal 3D architecture that combines depthwise-separable volumetric convolution and lightweight channel attention with adaptive fusion of structural MRI and phenotypic representations}, rather than the highest reported ADHD classification accuracy.
 
 \subsection{Limitations and Future Work}
-Several limitations should be considered. First, the present study uses a single held-out validation split rather than an independent external test cohort; the reported results should therefore not be interpreted as evidence of external generalization. Second, although the dataset contains multiple acquisition sites, the current experiment does not explicitly evaluate cross-site generalization. Third, the simplified preprocessing pipeline, without skull stripping, registration, or atlas-based segmentation, may affect generalization to data acquired under different protocols. Fourth, the current work focuses on binary ADHD-versus-control classification and does not investigate ADHD subtypes. Fifth, component-wise ablation of the ECA module, the phenotypic branch, and the adaptive fusion mechanism remains to be investigated in future experiments. Finally, the lightweight claim is currently supported by parameter count and FP32 weight storage; future evaluation should additionally report FLOPs, inference latency, and peak memory consumption under a standardized hardware and software environment.
+Several limitations should be considered. First, the present study uses a single held-out validation split rather than an independent external test cohort; the reported results should therefore not be interpreted as evidence of external generalization. Second, although the dataset contains multiple acquisition sites, the current experiment does not explicitly evaluate cross-site generalization. Third, the simplified preprocessing pipeline, without skull stripping, registration, or atlas-based segmentation, may affect generalization to data acquired under different protocols. Fourth, the current work focuses on binary ADHD-versus-control classification and does not investigate ADHD subtypes. Fifth, component-wise ablation of the ECA modules, the phenotypic branch, and the adaptive fusion mechanism remains to be investigated in future experiments. Finally, the lightweight claim is currently supported by parameter count and FP32 weight storage; future evaluation should additionally report FLOPs, inference latency, and peak memory consumption under a standardized hardware and software environment.
 
 %======================================================================
 \section{Conclusion}
