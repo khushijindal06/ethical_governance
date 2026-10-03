@@ -46,17 +46,17 @@ Deepika, Sharma, M., Arora, S.: Redefining parameter-efficiency in {ADHD}
   Research: Neuroimaging  \textbf{351},  112016 (2025).
   \doi{10.1016/j.pscychresns.2025.112016}
 
-\bibitem{ding2025matnet}
-Ding, Q., Sun, D., Zhu, S., Liu, Z., You, Y., He, X., Chen, F.: {MATNet}: a
-  multimodal attention-based temporal network integrating functional {MRI} and
-  structural {MRI} for accurate {ADHD} classification. Journal of Electronic
-  Imaging  \textbf{34}(4),  043008 (2025). \doi{10.1117/1.JEI.34.4.043008}
-
 \bibitem{firouzi2024}
 Firouzi, M., Kazemi, K., Ahmadi, M., Helfroush, M.S., Aarabi, A.: Enhanced
   {ADHD} classification through deep learning and dynamic resting state {fMRI}
   analysis. Scientific Reports  \textbf{14},  24473 (2024).
   \doi{10.1038/s41598-024-74282-y}
+
+\bibitem{gulhan2025}
+G{\"u}lhan, P.G., {\"O}zmen, G.: The use of {fMRI} regional analysis to
+  automatically detect {ADHD} through a {3D} {CNN}-based approach. Journal of
+  Imaging Informatics in Medicine  \textbf{38},  203--216 (2025).
+  \doi{10.1007/s10278-024-01189-5}
 
 \bibitem{howard2017mobilenets}
 Howard, A.G., Zhu, M., Chen, B., Kalenichenko, D., Wang, W., Weyand, T.,
@@ -136,6 +136,19 @@ Wang, Q., Wu, B., Zhu, P., Li, P., Zuo, W., Hu, Q.: {ECA-Net}: Efficient
   channel attention for deep convolutional neural networks. In: Proceedings of
   the IEEE/CVF Conference on Computer Vision and Pattern Recognition (CVPR).
   pp. 11534--11542 (2020). \doi{10.1109/CVPR42600.2020.01155}
+
+\bibitem{wu2025hagcn}
+Wu, X., Wen, X., Sun, J., Dong, Y., Wu, C., Wang, B., Xiang, J.: {HAGCN}: A
+  hybrid-order brain network-based graph convolution learning framework with
+  multi-head attention for brain disorder classification. Biomedical Signal
+  Processing and Control  \textbf{100},  106944 (2025).
+  \doi{10.1016/j.bspc.2024.106944}
+
+\bibitem{zamanzadeh2024}
+Zamanzadeh, M., Pourhedayat, A., Bakouie, F., Hadaeghi, F.: Exploring potential
+  {ADHD} biomarkers through advanced machine learning: An examination of
+  audiovisual integration networks. Computers in Biology and Medicine
+  \textbf{183},  109240 (2024). \doi{10.1016/j.compbiomed.2024.109240}
 
 \bibitem{zhangjames2023}
 Zhang-James, Y., Razavi, A.S., Hoogman, M., Franke, B., Faraone, S.V.: Machine
