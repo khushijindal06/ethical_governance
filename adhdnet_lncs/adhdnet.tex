@@ -136,45 +136,8 @@ ADHDNet consists of a lightweight 3D MRI encoder, a compact phenotypic encoder, 
 
 \begin{figure}[t]
 \centering
-\resizebox{\textwidth}{!}{%
-\begin{tikzpicture}[
-  blk/.style={draw, rounded corners=2pt, align=center, font=\small, minimum height=12mm, minimum width=20mm, inner sep=2.5pt},
-  io/.style={blk, fill=gray!12, minimum width=16mm},
-  enc/.style={blk, fill=blue!8},
-  fus/.style={blk, fill=orange!12},
-  dim/.style={font=\scriptsize, text=black!65},
-  arr/.style={-{Stealth[length=2mm]}, thick}
-]
-% ---- MRI branch: three DS-Conv3D blocks, each with its own ECA and max pooling
-\node[io]  (mri) at (0,0)    {3D sMRI\\$1\times64^3$};
-\node[enc] (b1)  at (2.75,0) {DS-Conv3D block 1\\+ ECA + MaxPool\\{\footnotesize $\rightarrow 24\times32^3$}};
-\node[enc] (b2)  at (6.05,0) {DS-Conv3D block 2\\+ ECA + MaxPool\\{\footnotesize $\rightarrow 48\times16^3$}};
-\node[enc] (b3)  at (9.35,0) {DS-Conv3D block 3\\+ ECA + MaxPool\\{\footnotesize $\rightarrow 96\times8^3$}};
-\node[enc] (gap) at (12.45,0) {GAP + FC\\$96\!\rightarrow\!128$};
-\draw[arr] (mri) -- (b1);
-\draw[arr] (b1) -- (b2);
-\draw[arr] (b2) -- (b3);
-\draw[arr] (b3) -- (gap);
-% ---- phenotype branch
-\node[io]  (ph)   at (0,-3.5)    {Phenotype\\(5)};
-\node[enc] (mlp)  at (2.75,-3.5) {MLP\\$5\!\rightarrow\!32\!\rightarrow\!32$};
-\node[enc] (proj) at (12.45,-3.5) {FC\\$32\!\rightarrow\!128$};
-\draw[arr] (ph) -- (mlp);
-\draw[arr] (mlp) -- node[dim, below, pos=0.5]{$h_P\in\mathbb{R}^{32}$} (proj);
-% ---- gated fusion
-\node[fus] (gate) at (12.45,-1.75) {Gate $g=\sigma(\cdot)$\\on $[z_{MRI};h_P]$\\{\footnotesize ($160\!\rightarrow\!128$)}};
-\node[fus] (fuse) at (15.3,-1.75)  {Fusion\\$g\odot z_{MRI}$\\$+\,(1-g)\odot z_P$};
-\node[fus] (cls)  at (17.95,-1.75) {Classifier\\$128\!\rightarrow\!64$\\$\rightarrow\!2$};
-\node[io]  (out)  at (20.3,-1.75)  {ADHD /\\Control};
-\draw[arr] (gap) -- node[dim, right]{$z_{MRI}$} (gate);
-\draw[arr] (mlp.north) |- (gate.west);
-\draw[arr] (gate) -- node[dim, above]{$g$} (fuse);
-\draw[arr] (gap.east) -| node[dim, above, pos=0.25]{$z_{MRI}\in\mathbb{R}^{128}$} (fuse.north);
-\draw[arr] (proj.east) -| node[dim, below, pos=0.25]{$z_P\in\mathbb{R}^{128}$} (fuse.south);
-\draw[arr] (fuse) -- node[dim, above]{$z_F$} (cls);
-\draw[arr] (cls) -- (out);
-\end{tikzpicture}}
-\caption{Overview of ADHDNet as implemented. The sMRI branch consists of three depthwise-separable (DS) Conv3D blocks (24, 48 and 96 channels); each block applies batch normalization, ReLU, 3D efficient channel attention (ECA) and $2\times2\times2$ max pooling, so channel recalibration is performed at every stage. Global average pooling (GAP) and a linear projection give $z_{MRI}\in\mathbb{R}^{128}$. The phenotypic MLP gives $h_P\in\mathbb{R}^{32}$. The gate is computed from the 160-dimensional concatenation $[z_{MRI};h_P]$, while $h_P$ is separately projected to $z_P\in\mathbb{R}^{128}$ for gated element-wise fusion.}
+\includegraphics[width=\textwidth]{figs/fig1_architecture.png}
+\caption{Overview of ADHDNet. The structural MRI branch passes a $1\times64\times64\times64$ volume through three depthwise-separable Conv3D blocks (24, 48, and 96 channels), a single 3D efficient channel attention (ECA) module, global average pooling, and a $96\rightarrow128$ projection to obtain $z_{MRI}$. The phenotypic branch encodes five features (age, sex, medication status, site, and ADHD Index) with a $5\rightarrow32\rightarrow32$ MLP and a $32\rightarrow128$ projection to obtain $z_P$. Adaptive gated fusion combines the two embeddings as $z_F=g\odot z_{MRI}+(1-g)\odot z_P$, and a $128\rightarrow64\rightarrow2$ head predicts ADHD or control.}
 \label{fig:arch}
 \end{figure}
 
