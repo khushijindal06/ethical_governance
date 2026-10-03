@@ -1,0 +1,146 @@
+\begin{thebibliography}{10}
+\providecommand{\url}[1]{\texttt{#1}}
+\providecommand{\urlprefix}{URL }
+\providecommand{\doi}[1]{https://doi.org/#1}
+
+\bibitem{arevalo2017gmu}
+Arevalo, J., Solorio, T., Montes-y G{\'o}mez, M., Gonz{\'a}lez, F.A.: Gated
+  multimodal units for information fusion. In: International Conference on
+  Learning Representations (ICLR), Workshop Track (2017)
+
+\bibitem{bellec2017}
+Bellec, P., Chu, C., Chouinard-Decorte, F., Benhajali, Y., Margulies, D.S.,
+  Craddock, R.C.: The {Neuro Bureau} {ADHD-200} {Preprocessed} repository.
+  NeuroImage  \textbf{144},  275--286 (2017).
+  \doi{10.1016/j.neuroimage.2016.06.034}
+
+\bibitem{cao2024}
+Cao, C., Fu, H., Li, G., Wang, M., Gao, X.: {ADHD} diagnosis guided by
+  functional brain networks combined with domain knowledge. Computers in
+  Biology and Medicine  \textbf{177},  108611 (2024).
+  \doi{10.1016/j.compbiomed.2024.108611}
+
+\bibitem{chen2025meta}
+Chen, C., Sun, S., Chen, R., Guo, Z., Tang, X., et~al.: A multimodal
+  neuroimaging meta-analysis of functional and structural brain abnormalities
+  in attention-deficit/hyperactivity disorder. Progress in
+  Neuro-Psychopharmacology and Biological Psychiatry  \textbf{136},  111199
+  (2025). \doi{10.1016/j.pnpbp.2024.111199}
+
+\bibitem{chollet2017xception}
+Chollet, F.: Xception: Deep learning with depthwise separable convolutions. In:
+  Proceedings of the IEEE Conference on Computer Vision and Pattern Recognition
+  (CVPR). pp. 1251--1258 (2017). \doi{10.1109/CVPR.2017.195}
+
+\bibitem{deepika2024}
+Deepika, Sharma, M., Arora, S.: Multimodality model investigating the impact of
+  brain atlases, connectivity measures, and dimensionality reduction techniques
+  on attention deficit hyperactivity disorder diagnosis using resting state
+  functional connectivity. Journal of Medical Imaging  \textbf{11}(6),  064502
+  (2024). \doi{10.1117/1.JMI.11.6.064502}
+
+\bibitem{deepika2025}
+Deepika, Sharma, M., Arora, S.: Redefining parameter-efficiency in {ADHD}
+  diagnosis: A lightweight attention-driven {Kolmogorov--Arnold} network with
+  reduced parameter complexity and a novel activation function. Psychiatry
+  Research: Neuroimaging  \textbf{351},  112016 (2025).
+  \doi{10.1016/j.pscychresns.2025.112016}
+
+\bibitem{ding2025matnet}
+Ding, Q., Sun, D., Zhu, S., Liu, Z., You, Y., He, X., Chen, F.: {MATNet}: a
+  multimodal attention-based temporal network integrating functional {MRI} and
+  structural {MRI} for accurate {ADHD} classification. Journal of Electronic
+  Imaging  \textbf{34}(4),  043008 (2025). \doi{10.1117/1.JEI.34.4.043008}
+
+\bibitem{firouzi2024}
+Firouzi, M., Kazemi, K., Ahmadi, M., Helfroush, M.S., Aarabi, A.: Enhanced
+  {ADHD} classification through deep learning and dynamic resting state {fMRI}
+  analysis. Scientific Reports  \textbf{14},  24473 (2024).
+  \doi{10.1038/s41598-024-74282-y}
+
+\bibitem{howard2017mobilenets}
+Howard, A.G., Zhu, M., Chen, B., Kalenichenko, D., Wang, W., Weyand, T.,
+  Andreetto, M., Adam, H.: {MobileNets}: Efficient convolutional neural
+  networks for mobile vision applications. arXiv preprint arXiv:1704.04861
+  (2017)
+
+\bibitem{hu2024}
+Hu, R., Zhu, K., Hou, Z., Wang, R., Liu, F.: Enhanced {ADHD} detection:
+  Frequency information embedded in a visual-language framework. Displays
+  \textbf{83},  102712 (2024). \doi{10.1016/j.displa.2024.102712}
+
+\bibitem{ioffe2015bn}
+Ioffe, S., Szegedy, C.: Batch normalization: Accelerating deep network training
+  by reducing internal covariate shift. In: Proceedings of the 32nd
+  International Conference on Machine Learning (ICML). pp. 448--456 (2015)
+
+\bibitem{lohani2025review}
+Lohani, D.C., Chawla, V., Rana, B.: A systematic literature review of machine
+  learning techniques for the detection of attention-deficit/hyperactivity
+  disorder using {MRI} and/or {EEG} data. Neuroscience  \textbf{570},  110--131
+  (2025). \doi{10.1016/j.neuroscience.2025.02.019}
+
+\bibitem{lohani2023}
+Lohani, D.C., Rana, B.: {ADHD} diagnosis using structural brain {MRI} and
+  personal characteristic data with machine learning framework. Psychiatry
+  Research: Neuroimaging  \textbf{334},  111689 (2023).
+  \doi{10.1016/j.pscychresns.2023.111689}
+
+\bibitem{loshchilov2017sgdr}
+Loshchilov, I., Hutter, F.: {SGDR}: Stochastic gradient descent with warm
+  restarts. In: International Conference on Learning Representations (ICLR)
+  (2017)
+
+\bibitem{loshchilov2019adamw}
+Loshchilov, I., Hutter, F.: Decoupled weight decay regularization. In:
+  International Conference on Learning Representations (ICLR) (2019)
+
+\bibitem{paszke2019pytorch}
+Paszke, A., Gross, S., Massa, F., Lerer, A., Bradbury, J., Chanan, G., Killeen,
+  T., Lin, Z., Gimelshein, N., Antiga, L., et~al.: {PyTorch}: An imperative
+  style, high-performance deep learning library. In: Advances in Neural
+  Information Processing Systems (NeurIPS). vol.~32, pp. 8024--8035 (2019)
+
+\bibitem{pedrollo2026}
+Pedrollo, G.R., Franco, A.R., Balbinot, A.: Attention-deficit/hyperactivity
+  disorder classification in functional magnetic resonance images with deep
+  learning. Research on Biomedical Engineering  \textbf{42}, ~25 (2026).
+  \doi{10.1007/s42600-026-00471-5}
+
+\bibitem{srivastava2014dropout}
+Srivastava, N., Hinton, G., Krizhevsky, A., Sutskever, I., Salakhutdinov, R.:
+  Dropout: A simple way to prevent neural networks from overfitting. Journal of
+  Machine Learning Research  \textbf{15}(56),  1929--1958 (2014)
+
+\bibitem{szegedy2016inception}
+Szegedy, C., Vanhoucke, V., Ioffe, S., Shlens, J., Wojna, Z.: Rethinking the
+  inception architecture for computer vision. In: Proceedings of the IEEE
+  Conference on Computer Vision and Pattern Recognition (CVPR). pp. 2818--2826
+  (2016). \doi{10.1109/CVPR.2016.308}
+
+\bibitem{adhd200consortium2012}
+{The ADHD-200 Consortium}: The {ADHD-200} {Consortium}: a model to advance the
+  translational potential of neuroimaging in clinical neuroscience. Frontiers
+  in Systems Neuroscience  \textbf{6}, ~62 (2012).
+  \doi{10.3389/fnsys.2012.00062}
+
+\bibitem{tian2024review}
+Tian, L., Zheng, H., Zhang, K., Qiu, J., Song, X., Li, S., Zeng, Z., Ran, B.,
+  Deng, X., Cai, J.: Structural or/and functional {MRI}-based machine learning
+  techniques for attention-deficit/hyperactivity disorder diagnosis: A
+  systematic review and meta-analysis. Journal of Affective Disorders
+  \textbf{355},  459--469 (2024). \doi{10.1016/j.jad.2024.03.111}
+
+\bibitem{wang2020eca}
+Wang, Q., Wu, B., Zhu, P., Li, P., Zuo, W., Hu, Q.: {ECA-Net}: Efficient
+  channel attention for deep convolutional neural networks. In: Proceedings of
+  the IEEE/CVF Conference on Computer Vision and Pattern Recognition (CVPR).
+  pp. 11534--11542 (2020). \doi{10.1109/CVPR42600.2020.01155}
+
+\bibitem{zhangjames2023}
+Zhang-James, Y., Razavi, A.S., Hoogman, M., Franke, B., Faraone, S.V.: Machine
+  learning and {MRI}-based diagnostic models for {ADHD}: Are we there yet?
+  Journal of Attention Disorders  \textbf{27}(4),  335--353 (2023).
+  \doi{10.1177/10870547221146256}
+
+\end{thebibliography}

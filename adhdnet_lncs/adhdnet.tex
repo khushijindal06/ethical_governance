@@ -16,6 +16,7 @@
 \usepackage{tikz}
 \usetikzlibrary{positioning,arrows.meta,calc}
 \usepackage{url}
+\usepackage{cite}
 \usepackage[hidelinks]{hyperref}
 \renewcommand\UrlFont{\color{blue}\rmfamily}
 
@@ -41,7 +42,7 @@ Attention-Deficit/Hyperactivity Disorder (ADHD) is a neurodevelopmental disorder
 \section{Introduction}
 %======================================================================
 
-Attention-Deficit/Hyperactivity Disorder (ADHD) is a neurodevelopmental disorder characterized by persistent patterns of inattention, hyperactivity, and impulsivity. Diagnosis is primarily based on behavioral assessment and clinical evaluation, which can be challenging because symptoms may overlap with those of other developmental and psychiatric conditions. Consequently, neuroimaging-based machine learning has been investigated as a complementary computational approach for identifying patterns associated with ADHD~\cite{zhangjames2023,jad2024review,neuro2025review}.
+Attention-Deficit/Hyperactivity Disorder (ADHD) is a neurodevelopmental disorder characterized by persistent patterns of inattention, hyperactivity, and impulsivity. Diagnosis is primarily based on behavioral assessment and clinical evaluation, which can be challenging because symptoms may overlap with those of other developmental and psychiatric conditions. Consequently, neuroimaging-based machine learning has been investigated as a complementary computational approach for identifying patterns associated with ADHD~\cite{zhangjames2023,tian2024review,lohani2025review}.
 
 Magnetic resonance imaging (MRI), particularly structural MRI (sMRI), provides non-invasive information about brain anatomy and has been extensively investigated for automated ADHD analysis~\cite{chen2025meta}. Conventional machine learning approaches have extracted regional gray-matter volume, cortical thickness, and personal characteristics before applying classifiers such as support vector machines and random forests. For example, Lohani and Rana~\cite{lohani2023} used structural MRI-derived features together with personal characteristics and reported a maximum classification accuracy of 75\% using conventional machine learning models on an age-balanced ADHD dataset.
 
@@ -63,7 +64,7 @@ In this work, we propose \emph{ADHDNet}, a lightweight adaptive multimodal 3D CN
 %======================================================================
 
 \subsubsection{MRI-Based ADHD Classification.}
-MRI-based machine learning has been widely investigated for ADHD classification~\cite{zhangjames2023,jad2024review,neuro2025review}. Earlier approaches generally relied on manually extracted neuroanatomical or functional connectivity features followed by conventional classifiers. Lohani and Rana~\cite{lohani2023} investigated structural MRI together with personal characteristic information and extracted gray-matter volume and cortical\-thickness features; their best configuration achieved 75\% accuracy using conventional classifiers and repeated ten-fold cross\-validation.
+MRI-based machine learning has been widely investigated for ADHD classification~\cite{zhangjames2023,tian2024review,lohani2025review}. Earlier approaches generally relied on manually extracted neuroanatomical or functional connectivity features followed by conventional classifiers. Lohani and Rana~\cite{lohani2023} investigated structural MRI together with personal characteristic information and extracted gray-matter volume and cortical\-thickness features; their best configuration achieved 75\% accuracy using conventional classifiers and repeated ten-fold cross\-validation.
 More recent studies have increasingly adopted deep learning to learn representations directly from neuroimaging data. CNN-based approaches have been investigated for fMRI-based ADHD classification~\cite{firouzi2024}, while ensemble CNN approaches have been explored for distinguishing ADHD subtypes. Pedrollo et al.~\cite{pedrollo2026} reported CNN ensemble-based classification using resting-state fMRI in a cohort of 623 participants. These studies demonstrate the potential of deep neural networks for learning discriminative neuroimaging representations; however, many focus primarily on improving predictive performance through increasingly complex architectures.
 
 \subsubsection{Multimodal ADHD Analysis.}
@@ -79,7 +80,7 @@ Model complexity is an important consideration when deep learning systems are in
 
 \subsection{Dataset}
 
-Experiments were conducted using the preprocessed anatomical component of the publicly available ADHD-200 dataset. The dataset initially contained 575 successfully processed subjects (353 controls and 222 ADHD) distributed across six sites: KKI, NYU, OHSU, Peking\_1, Pittsburgh, and NeuroIMAGE. The Pittsburgh site contained 78 control subjects but no ADHD subjects. Because a site containing only one class cannot contribute meaningful within-site binary discrimination, it was excluded from model development. The final cohort therefore consisted of 497 subjects (222 ADHD and 275 controls). The distribution after site exclusion is shown in Table~\ref{tab:dataset}.
+Experiments were conducted using the preprocessed anatomical component of the publicly available ADHD-200 dataset~\cite{adhd200consortium2012,bellec2017}. The dataset initially contained 575 successfully processed subjects (353 controls and 222 ADHD) distributed across six sites: KKI, NYU, OHSU, Peking\_1, Pittsburgh, and NeuroIMAGE. The Pittsburgh site contained 78 control subjects but no ADHD subjects. Because a site containing only one class cannot contribute meaningful within-site binary discrimination, it was excluded from model development. The final cohort therefore consisted of 497 subjects (222 ADHD and 275 controls). The distribution after site exclusion is shown in Table~\ref{tab:dataset}.
 
 \begin{table}[t]
 \centering
@@ -162,7 +163,7 @@ ADHDNet consists of three major components: (i) a lightweight 3D MRI encoder, (i
 
 \subsection{Lightweight 3D MRI Encoder}
 
-The imaging branch uses three depthwise-separable 3D convolutional blocks with channel progression $1\rightarrow24\rightarrow48\rightarrow96$ and spatial downsampling after each block. Depthwise-separable convolution decomposes a conventional convolution into (i) a depthwise spatial convolution and (ii) a pointwise $1\times1\times1$ convolution. For a conventional 3D convolution with kernel size $K$, the parameter count is approximately
+The imaging branch uses three depthwise-separable 3D convolutional blocks with channel progression $1\rightarrow24\rightarrow48\rightarrow96$ and spatial downsampling after each block. Depthwise-separable convolution~\cite{chollet2017xception,howard2017mobilenets} decomposes a conventional convolution into (i) a depthwise spatial convolution and (ii) a pointwise $1\times1\times1$ convolution. For a conventional 3D convolution with kernel size $K$, the parameter count is approximately
 \begin{equation}
 P_{\text{conv}} = K^3 C_{in} C_{out},
 \end{equation}
@@ -174,7 +175,7 @@ Since the second expression can be considerably smaller when $C_{out}$ is large,
 
 \subsection{Efficient Channel Attention}
 
-To improve feature recalibration without introducing a large parameter overhead, a three-dimensional efficient channel attention mechanism is incorporated. The attention operation estimates channel importance from globally pooled feature responses and applies channel-wise weights to the volumetric feature maps:
+To improve feature recalibration without introducing a large parameter overhead, a three-dimensional extension of efficient channel attention (ECA)~\cite{wang2020eca} is incorporated. The attention operation estimates channel importance from globally pooled feature responses and applies channel-wise weights to the volumetric feature maps:
 \begin{equation}
 F_{att} = A(F) \odot F,
 \end{equation}
@@ -182,11 +183,11 @@ where $F$ represents the feature tensor and $A(F)$ the learned channel attention
 
 \subsection{Phenotypic Encoder}
 
-The phenotypic input consists of five features. The phenotype encoder is a small multilayer perceptron with dimensions $5\rightarrow32\rightarrow32$. ReLU activation, batch normalization, and dropout are used to regularize the representation. The resulting 32-dimensional phenotype representation is projected to 128 dimensions before multimodal fusion.
+The phenotypic input consists of five features. The phenotype encoder is a small multilayer perceptron with dimensions $5\rightarrow32\rightarrow32$. ReLU activation, batch normalization~\cite{ioffe2015bn}, and dropout~\cite{srivastava2014dropout} are used to regularize the representation. The resulting 32-dimensional phenotype representation is projected to 128 dimensions before multimodal fusion.
 
 \subsection{Adaptive Gated Fusion}
 
-Simple concatenation treats both modalities equally at the fusion stage. Instead, ADHDNet employs a learnable gating mechanism. Let $z_{MRI}\in\mathbb{R}^{128}$ denote the MRI representation and $z_{P}\in\mathbb{R}^{128}$ the projected phenotype representation. The two representations are first concatenated, $z=[z_{MRI};z_P]$, and a gating network generates
+Simple concatenation treats both modalities equally at the fusion stage. Instead, ADHDNet employs a learnable gating mechanism, in the spirit of gated multimodal units~\cite{arevalo2017gmu}. Let $z_{MRI}\in\mathbb{R}^{128}$ denote the MRI representation and $z_{P}\in\mathbb{R}^{128}$ the projected phenotype representation. The two representations are first concatenated, $z=[z_{MRI};z_P]$, and a gating network generates
 \begin{equation}
 g = \sigma\!\left(W_2\,\delta(W_1 z)\right),
 \end{equation}
@@ -215,7 +216,7 @@ Stored as 32-bit floating-point values, the trained weights of ADHDNet occupy $7
 %======================================================================
 
 \subsubsection{Training Strategy.}
-The network was trained using the AdamW optimizer with a learning rate of $1\times10^{-4}$, weight decay of $1\times10^{-4}$, batch size of 8, a maximum of 150 epochs, early stopping with patience 15, label smoothing of 0.1, gradient clipping at 1.0, and cosine annealing learning-rate scheduling. Weighted cross-entropy loss was used to account for class imbalance. The random seed was fixed to 42; Python, NumPy, and PyTorch random states were seeded, and deterministic CUDA settings were used where applicable.
+The network was trained in PyTorch~\cite{paszke2019pytorch} using the AdamW optimizer~\cite{loshchilov2019adamw} with a learning rate of $1\times10^{-4}$, weight decay of $1\times10^{-4}$, batch size of 8, a maximum of 150 epochs, early stopping with patience 15, label smoothing~\cite{szegedy2016inception} of 0.1, gradient clipping at 1.0, and cosine annealing learning-rate scheduling~\cite{loshchilov2017sgdr}. Weighted cross-entropy loss was used to account for class imbalance. The random seed was fixed to 42; Python, NumPy, and PyTorch random states were seeded, and deterministic CUDA settings were used where applicable.
 
 \subsubsection{Experimental Protocol.}
 The final dataset was divided using a stratified 80:20 train--validation split, giving 397 training subjects and 100 held-out validation subjects (45 ADHD and 55 controls). Normalization statistics were calculated from the training data and applied to the validation data. Importantly, the validation set was used for early stopping and model selection; therefore, the reported results should be interpreted as \emph{held-out validation performance} rather than independent external test performance.
@@ -364,46 +365,7 @@ This paper presented ADHDNet, a lightweight adaptive multimodal 3D CNN for ADHD 
 %======================================================================
 % References (Springer LNCS style, splncs04 format)
 %======================================================================
-\begin{thebibliography}{12}
-\providecommand{\url}[1]{\texttt{#1}}
-\providecommand{\doi}[1]{https://doi.org/#1}
-
-\bibitem{lohani2023}
-Lohani, D.C., Rana, B.: ADHD diagnosis using structural brain MRI and personal characteristic data with machine learning framework. Psychiatry Research: Neuroimaging \textbf{334}, 111689 (2023). \doi{10.1016/j.pscychresns.2023.111689}
-
-\bibitem{deepika2025}
-Deepika, Sharma, M., Arora, S.: Redefining parameter-efficiency in ADHD diagnosis: A lightweight attention-driven Kolmogorov--Arnold network with reduced parameter complexity and a novel activation function. Psychiatry Research: Neuroimaging \textbf{351}, 112016 (2025). \doi{10.1016/j.pscychresns.2025.112016}
-
-\bibitem{deepika2024}
-Deepika, Sharma, M., Arora, S.: Multimodality model investigating the impact of brain atlases, connectivity measures, and dimensionality reduction techniques on attention deficit hyperactivity disorder diagnosis using resting state functional connectivity. Journal of Medical Imaging \textbf{11}(6), 064502 (2024). \doi{10.1117/1.JMI.11.6.064502}
-
-\bibitem{ding2025matnet}
-Ding, Q., Sun, D., Zhu, S., Liu, Z., You, Y., He, X., Chen, F.: MATNet: a multimodal attention-based temporal network integrating functional MRI and structural MRI for accurate ADHD classification. Journal of Electronic Imaging \textbf{34}(4), 043008 (2025). \doi{10.1117/1.JEI.34.4.043008}
-
-\bibitem{pedrollo2026}
-Pedrollo, G.R., Franco, A.R., Balbinot, A.: Attention-deficit/hyperactivity disorder classification in functional magnetic resonance images with deep learning. Research on Biomedical Engineering \textbf{42}, 25 (2026). \doi{10.1007/s42600-026-00471-5}
-
-\bibitem{zhangjames2023}
-Zhang-James, Y., Razavi, A.S., Hoogman, M., Franke, B., Faraone, S.V.: Machine learning and MRI-based diagnostic models for ADHD: Are we there yet? Journal of Attention Disorders \textbf{27}(4), 335--353 (2023). \doi{10.1177/10870547221146256}
-
-\bibitem{firouzi2024}
-Firouzi, M.H., et al.: Enhanced ADHD classification through deep learning and dynamic resting state fMRI analysis. Scientific Reports \textbf{14}, 24473 (2024). \doi{10.1038/s41598-024-74282-y}
-
-\bibitem{hu2024}
-Hu, R., Zhu, K., Hou, Z., Wang, R., Liu, F.: Enhanced ADHD detection: Frequency information embedded in a visual-language framework. Displays \textbf{83}, 102712 (2024). \doi{10.1016/j.displa.2024.102712}
-
-\bibitem{cao2024}
-Cao, C., Fu, H., Li, G., Wang, M., Gao, X.: ADHD diagnosis guided by functional brain networks combined with domain knowledge. Computers in Biology and Medicine \textbf{177}, 108611 (2024). \doi{10.1016/j.compbiomed.2024.108611}
-
-\bibitem{jad2024review}
-Structural or/and functional MRI-based machine learning techniques for attention-deficit/hyperactivity disorder diagnosis: A systematic review and meta-analysis. Journal of Affective Disorders \textbf{355}, 459--469 (2024). \doi{10.1016/j.jad.2024.03.111}
-
-\bibitem{neuro2025review}
-A systematic literature review of machine learning techniques for the detection of attention-deficit/hyperactivity disorder using MRI and/or EEG data. Neuroscience \textbf{570}, 110--131 (2025). \doi{10.1016/j.neuroscience.2025.02.019}
-
-\bibitem{chen2025meta}
-Chen, C., et al.: A multimodal neuroimaging meta-analysis of functional and structural brain abnormalities in attention-deficit/hyperactivity disorder. Progress in Neuro-Psychopharmacology \& Biological Psychiatry \textbf{136}, 111199 (2025). \doi{10.1016/j.pnpbp.2024.111199}
-
-\end{thebibliography}
+\bibliographystyle{splncs04}
+\bibliography{references}
 
 \end{document}
