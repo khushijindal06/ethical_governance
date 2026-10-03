@@ -32,7 +32,7 @@
 \maketitle
 
 \begin{abstract}
-Attention-Deficit/Hyperactivity Disorder (ADHD) is a neurodevelopmental disorder whose diagnosis primarily relies on behavioral and clinical assessment. Machine learning methods based on neuroimaging have shown potential for supporting automated ADHD classification; however, many deep learning approaches employ increasingly complex architectures with substantial computational and parameter requirements. This work presents \emph{ADHDNet}, a lightweight multimodal 3D convolutional neural network for ADHD classification using structural magnetic resonance imaging (sMRI) and phenotypic information. The proposed framework employs depthwise-separable 3D convolutional blocks to reduce model parameters while retaining volumetric feature extraction capability. A three-dimensional efficient channel attention mechanism recalibrates informative feature channels, while an adaptive gated fusion module dynamically combines MRI-derived and phenotypic representations. Experiments were conducted on a multisite subset of the ADHD-200 dataset comprising 497 subjects after excluding a site without ADHD cases. Structural MRI volumes were resized to $64\times64\times64$, normalized, and combined with five phenotypic features. The proposed model contains only 71,558 trainable parameters (0.0716M). On a stratified held-out validation set, ADHDNet achieved 89.00\% accuracy and an AUC of 0.9535, with a sensitivity of 93.33\%, specificity of 85.45\%, precision of 84.00\%, and F1-score of 0.88. Compared with a standard Conv3D multimodal comparator containing 1.376M parameters, ADHDNet reduces the parameter count by approximately 94.8\%. The results demonstrate that a compact multimodal 3D architecture can provide effective ADHD classification while substantially reducing model complexity.
+Attention-Deficit/Hyperactivity Disorder (ADHD) is a neurodevelopmental disorder whose diagnosis primarily relies on behavioral and clinical assessment. Machine learning methods based on neuroimaging have shown potential for supporting automated ADHD classification; however, many deep learning approaches employ increasingly complex architectures with substantial computational and parameter requirements. This work presents \emph{ADHDNet}, a lightweight multimodal 3D convolutional neural network for ADHD classification using structural magnetic resonance imaging (sMRI) and phenotypic information. The proposed framework employs depthwise-separable 3D convolutional blocks to reduce model parameters while retaining volumetric feature extraction capability. A three-dimensional efficient channel attention mechanism recalibrates informative feature channels, while an adaptive gated fusion module dynamically combines MRI-derived and phenotypic representations. Experiments were conducted on a multisite subset of the ADHD-200 dataset comprising 497 subjects after excluding a site without ADHD cases. Structural MRI volumes were resized to $64\times64\times64$, normalized, and combined with five phenotypic features. The proposed model contains only 71,558 trainable parameters (0.0716M). On a stratified held-out validation set, ADHDNet achieved 89.00\% accuracy and an AUC of 0.9535, with a sensitivity of 93.33\%, specificity of 85.45\%, precision of 84.00\%, and F1-score of 0.88. Compared with a standard Conv3D multimodal comparator containing 1.376M parameters, ADHDNet reduces the parameter count by approximately 94.8\% and its FP32 weight storage from about 5.25\,MiB to 0.27\,MiB. The results demonstrate that a compact multimodal 3D architecture can provide effective ADHD classification while substantially reducing model complexity.
 
 \keywords{ADHD \and Structural MRI \and Multimodal learning \and 3D CNN \and Depthwise-separable convolution \and Efficient channel attention \and Lightweight deep learning}
 \end{abstract}
@@ -47,13 +47,13 @@ Magnetic resonance imaging (MRI), particularly structural MRI (sMRI), provides n
 
 Deep learning approaches have subsequently enabled direct learning of imaging representations. Recent studies have explored convolutional neural networks, multimodal architectures, attention mechanisms, and ensemble approaches for ADHD analysis~\cite{firouzi2024,hu2024,cao2024,pedrollo2026}. These approaches demonstrate the potential of learned neuroimaging representations but can introduce substantial computational requirements.
 
-At the same time, model efficiency has become increasingly relevant for neuroimaging applications. Deepika et al.~\cite{deepika2025} specifically investigated parameter-efficient ADHD classification and highlighted the computational cost associated with increasingly complex deep learning architectures. Their lightweight attention-driven KAN framework reported 79.25\% accuracy while using only a few thousand parameters. This motivates the development of compact deep learning architectures that can process volumetric MRI while incorporating complementary phenotypic information without unnecessarily increasing model complexity.
+At the same time, model efficiency has become increasingly relevant for neuroimaging applications. Deepika et al.~\cite{deepika2025} specifically investigated parameter-efficient ADHD classification and highlighted the computational cost associated with increasingly complex deep learning architectures. Their lightweight attention-driven KAN framework reported 79.25\% accuracy while using only a few thousand parameters. However, relatively limited work has investigated parameter-efficient multimodal architectures that directly process volumetric structural MRI while incorporating phenotypic information. This study therefore investigates whether a compact 3D architecture can combine structural MRI and phenotypic information while substantially reducing parameter requirements.
 
 In this work, we propose \emph{ADHDNet}, a lightweight adaptive multimodal 3D CNN for ADHD classification. Instead of increasing network depth and width, the proposed architecture reduces parameter requirements through depthwise-separable 3D convolutions. A 3D efficient channel attention mechanism is incorporated to improve channel-wise feature recalibration, and an adaptive gated fusion module dynamically combines MRI and phenotypic representations. The main contributions of this work are:
 \begin{enumerate}
   \item A \textbf{lightweight 3D MRI encoder} based on depthwise-separable Conv3D operations for parameter-efficient volumetric feature extraction.
   \item Integration of a \textbf{3D efficient channel attention (ECA)} mechanism for channel-wise feature recalibration with limited additional parameters.
-  \item An \textbf{adaptive gated multimodal fusion mechanism} for combining structural MRI and phenotypic representations.
+  \item Integration of \textbf{adaptive gated fusion} of structural MRI and phenotypic representations within this parameter-efficient 3D architecture.
   \item Evaluation on a \textbf{multisite subset of the ADHD-200 dataset} using structural MRI and phenotypic information.
   \item Explicit analysis of \textbf{parameter efficiency}, including comparison with a conventional Conv3D multimodal architecture.
 \end{enumerate}
@@ -67,7 +67,8 @@ MRI-based machine learning has been widely investigated for ADHD classification~
 More recent studies have increasingly adopted deep learning to learn representations directly from neuroimaging data. CNN-based approaches have been investigated for fMRI-based ADHD classification~\cite{firouzi2024}, while ensemble CNN approaches have been explored for distinguishing ADHD subtypes. Pedrollo et al.~\cite{pedrollo2026} reported CNN ensemble-based classification using resting-state fMRI in a cohort of 623 participants. These studies demonstrate the potential of deep neural networks for learning discriminative neuroimaging representations; however, many focus primarily on improving predictive performance through increasingly complex architectures.
 
 \subsubsection{Multimodal ADHD Analysis.}
-Phenotypic variables can provide complementary information to neuroimaging measurements. Age, sex, medication status, and clinical characteristics may contain information that is not directly represented in image features. The study by Lohani and Rana~\cite{lohani2023} provides evidence for the usefulness of combining structural MRI-derived characteristics with personal information. This motivates multimodal architectures that learn an imaging representation while independently encoding phenotypic information before combining both modalities.
+Phenotypic variables can provide complementary information to neuroimaging measurements. Age, sex, medication status, and clinical characteristics may contain information that is not directly represented in image features. The study by Lohani and Rana~\cite{lohani2023} provides evidence for the usefulness of combining structural MRI-derived characteristics with personal information. This motivates multimodal architectures that learn an imaging representation while independently encoding phenotypic information before combining both modalities. A recent preprint has also explored 3D structural MRI and clinical phenotypic information using adaptive gated multimodal fusion, reporting 87\% accuracy on the Peking-1 subset of ADHD-200~\cite{TODO-preprint}% TODO: replace with the 2026 preprint reference: add \cite{} for the 2026 preprint
+. In contrast, the present work focuses specifically on reducing model complexity through depthwise-separable 3D convolution and lightweight channel attention while evaluating a multisite cohort.
 
 \subsubsection{Lightweight Deep Learning.}
 Model complexity is an important consideration when deep learning systems are intended for computationally constrained environments. Deepika et al.~\cite{deepika2025} explicitly investigated parameter efficiency for ADHD classification and proposed an attention-driven KAN architecture with only a few thousand parameters. Therefore, rather than treating model size as secondary, the present study considers \emph{parameter efficiency as a primary design objective}. ADHDNet uses depthwise-separable 3D convolution to reduce the number of learnable parameters while retaining volumetric processing capability.
@@ -207,21 +208,7 @@ Parameter efficiency is a central design consideration of ADHDNet. The proposed 
 \begin{equation}
 \frac{1{,}376{,}080 - 71{,}558}{1{,}376{,}080}\times 100 \approx 94.8\%.
 \end{equation}
-Table~\ref{tab:complexity} summarizes the comparison. The parameter count demonstrates that the proposed architecture substantially reduces the number of trainable weights without removing the multimodal component.
-
-\begin{table}[t]
-\centering
-\caption{Model complexity comparison.}
-\label{tab:complexity}
-\begin{tabular}{llrr}
-\toprule
-Model & MRI encoder & Parameters & Relative \\
-\midrule
-Standard Conv3D multimodal & Conventional Conv3D & 1.376M & 19.23$\times$ \\
-\textbf{ADHDNet} & \textbf{DS-Conv3D + ECA} & \textbf{0.0716M} & \textbf{1$\times$} \\
-\bottomrule
-\end{tabular}
-\end{table}
+Stored as 32-bit floating-point values, the trained weights of ADHDNet occupy $71{,}558\times4 = 286{,}232$ bytes ($\approx$0.27\,MiB), compared with $1{,}376{,}080\times4 = 5{,}504{,}320$ bytes ($\approx$5.25\,MiB) for the comparator. These figures describe FP32 weight storage only, not runtime memory usage. The efficiency results are summarized in Table~\ref{tab:efficiency} (Sect.~\ref{sec:efficiency}).
 
 %======================================================================
 \section{Experimental Setup}
@@ -293,13 +280,43 @@ F1-score    & 0.88 \\
 
 The proposed model achieved an AUC of 0.9535, indicating strong discrimination on the held-out validation cohort. However, because the validation set was used for early stopping and model selection, the reported AUC should not be interpreted as an independent external validation result.
 
-\subsection{Parameter Efficiency}
+\subsection{Computational Efficiency}
+\label{sec:efficiency}
 
-The most important characteristic of ADHDNet is its compact parameter count: 0.0716M parameters compared with 1.376M for the standard Conv3D comparator, i.e., approximately 94.8\% fewer parameters. The proposed architecture therefore demonstrates that multimodal 3D MRI analysis does not necessarily require a large number of trainable parameters.
+Since the main contribution of this work is a lightweight design, Table~\ref{tab:efficiency} reports the computational efficiency of ADHDNet against the standard Conv3D multimodal comparator implemented under the same experimental framework. ADHDNet requires 0.0716M trainable parameters compared with 1.376M for the comparator, a reduction of approximately 94.8\% (a factor of 19.2). Correspondingly, its FP32 weight storage falls from approximately 5.25\,MiB to 0.27\,MiB. These results show that multimodal 3D MRI analysis does not necessarily require a large number of trainable parameters.
+
+\begin{table}[t]
+\centering
+\caption{Computational efficiency of the proposed model. FP32 weight storage is the size of the trained weights stored as 32-bit floats (parameters $\times$ 4 bytes); it is not runtime memory usage.}
+\label{tab:efficiency}
+\begin{tabular}{lrrr}
+\toprule
+Model & Parameters & Parameter reduction & FP32 weight storage \\
+\midrule
+Standard Conv3D multimodal & 1.376M & --- & $\approx$5.25\,MiB \\
+\textbf{ADHDNet} & \textbf{0.0716M} & \textbf{94.8\%} & \textbf{$\approx$0.27\,MiB} \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+% TODO: once measured, add GFLOPs and inference time per sample (see measure_efficiency.py):
+% \begin{table}[t]
+% \centering
+% \caption{Computational cost per $64\times64\times64$ input (batch size 1, <hardware>).}
+% \label{tab:cost}
+% \begin{tabular}{lrrr}
+% \toprule
+% Model & Parameters & GFLOPs & Inference time/sample (ms) \\
+% \midrule
+% Standard Conv3D multimodal & 1.376M & -- & -- \\
+% \textbf{ADHDNet} & \textbf{0.0716M} & -- & -- \\
+% \bottomrule
+% \end{tabular}
+% \end{table}
 
 \subsection{Comparison with Existing Studies}
 
-The objective of the literature comparison is not to rank models based solely on reported accuracy, because the studies use different datasets, modalities, preprocessing pipelines, class definitions, and validation strategies. Lohani and Rana~\cite{lohani2023} used structural MRI-derived features and personal characteristics with conventional machine learning and reported 75\% maximum accuracy. Deepika et al.~\cite{deepika2024} combined resting-state functional connectivity with phenotypic data and reported 77.59\% accuracy, with phenotypic information raising accuracy from 71.98\%. MATNet~\cite{ding2025matnet} integrated fMRI-derived spatiotemporal graph features with sMRI features extracted by 3D depthwise-separable convolution and attention, reporting per-site accuracies of up to 85.49\% on ADHD-200. Deepika et al.~\cite{deepika2025} subsequently investigated parameter-efficient ADHD classification and reported 79.25\% accuracy using a lightweight attention-driven KAN framework with only a few thousand parameters. Pedrollo et al.~\cite{pedrollo2026} used resting-state fMRI from 623 participants and reported $97.6\pm2.1\%$ accuracy for ADHD diagnosis using an ensemble approach. These results demonstrate the diversity of existing approaches; direct numerical comparison is inappropriate because the underlying modalities and experimental protocols differ (Table~\ref{tab:literature}). ADHDNet differs from these studies by explicitly combining volumetric structural MRI, phenotypic information, and a parameter-efficient 3D convolutional architecture.
+The objective of the literature comparison is not to rank models based solely on reported accuracy, because the studies use different datasets, modalities, preprocessing pipelines, class definitions, and validation strategies. Lohani and Rana~\cite{lohani2023} used structural MRI-derived features and personal characteristics with conventional machine learning and reported 75\% maximum accuracy. Deepika et al.~\cite{deepika2024} combined resting-state functional connectivity with phenotypic data and reported 77.59\% accuracy, with phenotypic information raising accuracy from 71.98\%. MATNet~\cite{ding2025matnet} integrated fMRI-derived spatiotemporal graph features with sMRI features extracted by 3D depthwise-separable convolution and attention, reporting per-site accuracies of up to 85.49\% on ADHD-200. Deepika et al.~\cite{deepika2025} subsequently investigated parameter-efficient ADHD classification and reported 79.25\% accuracy using a lightweight attention-driven KAN framework with only a few thousand parameters. These results demonstrate the diversity of existing approaches; direct numerical comparison is inappropriate because the underlying modalities and experimental protocols differ (Table~\ref{tab:literature}). ADHDNet differs from these studies by explicitly combining volumetric structural MRI, phenotypic information, and a parameter-efficient 3D convolutional architecture.
 
 \begin{table}[t]
 \centering
@@ -330,13 +347,13 @@ The results demonstrate the feasibility of using a compact 3D CNN to integrate s
 
 The phenotypic information provides a complementary modality to the MRI representation. Rather than simply concatenating the two representations, the adaptive gating mechanism allows the model to generate a sample-dependent fusion representation. The ECA module provides channel-wise recalibration while adding relatively little architectural complexity, so the architecture remains compact while incorporating attention-based feature refinement.
 
-The parameter-efficiency focus is particularly relevant because recent ADHD literature has begun to explicitly investigate lightweight architectures~\cite{deepika2025}. The present work positions ADHDNet within this emerging direction while focusing specifically on 3D structural MRI and phenotypic multimodal learning. It is important, however, not to interpret the 89\% accuracy as evidence that ADHDNet is universally superior to previously published approaches, since existing studies use different datasets, modalities, preprocessing procedures, class definitions, and validation protocols. The main contribution of the present study is consequently the \emph{combination of multimodal volumetric processing and parameter efficiency}, rather than achieving the highest reported ADHD classification accuracy.
+The parameter-efficiency focus is particularly relevant because recent ADHD literature has begun to explicitly investigate lightweight architectures~\cite{deepika2025}. The present work positions ADHDNet within this emerging direction while focusing specifically on 3D structural MRI and phenotypic multimodal learning. It is important, however, not to interpret the 89\% accuracy as evidence that ADHDNet is universally superior to previously published approaches, since existing studies use different datasets, modalities, preprocessing procedures, class definitions, and validation protocols. The main contribution is therefore a \emph{parameter-efficient multimodal 3D architecture that combines depthwise-separable volumetric convolution and lightweight channel attention with adaptive fusion of structural MRI and phenotypic representations}, rather than the highest reported ADHD classification accuracy.
 
 \subsubsection{Planned Ablation Analysis.}
 To further validate the contribution of individual components, the following ablation experiments are planned: (i) an MRI-only model, removing the phenotypic branch; (ii) MRI + ECA, evaluating the contribution of efficient channel attention; (iii) MRI + phenotype with simple concatenation in place of adaptive gated fusion; (iv) the lightweight multimodal architecture without ECA; and (v) the complete ADHDNet. No numerical ablation results are reported here until those experiments are completed.
 
 \subsubsection{Limitations.}
-Several limitations should be considered. First, the present study uses a single held-out validation split rather than an independent external test cohort; the reported results should therefore not be interpreted as evidence of external generalization. Second, although the dataset contains multiple acquisition sites, the current experiment does not explicitly evaluate cross-site generalization. Third, the MRI preprocessing pipeline is intentionally simple and does not include skull stripping, registration, or atlas-based segmentation. Fourth, the current work focuses on binary ADHD-versus-control classification and does not investigate ADHD subtypes. Finally, the lightweight claim is currently supported primarily through parameter count; future evaluation should additionally report FLOPs, inference latency, peak memory consumption, and model storage requirements under a standardized hardware and software environment.
+Several limitations should be considered. First, the present study uses a single held-out validation split rather than an independent external test cohort; the reported results should therefore not be interpreted as evidence of external generalization. Second, although the dataset contains multiple acquisition sites, the current experiment does not explicitly evaluate cross-site generalization. Third, the MRI preprocessing pipeline is intentionally simple and does not include skull stripping, registration, or atlas-based segmentation. Fourth, the current work focuses on binary ADHD-versus-control classification and does not investigate ADHD subtypes. Finally, the lightweight claim is currently supported primarily through parameter count; apart from FP32 weight storage, future evaluation should additionally report FLOPs, inference latency, and peak memory consumption under a standardized hardware and software environment.
 
 %======================================================================
 \section{Conclusion}
