@@ -131,7 +131,7 @@ Five phenotypic variables were incorporated: age, sex, medication status, site, 
 \section{Proposed ADHDNet}
 %======================================================================
 
-ADHDNet consists of a lightweight 3D MRI encoder, a compact phenotypic encoder, and an adaptive gated fusion module (Fig.~\ref{fig:arch}). A $1\times64\times64\times64$ sMRI volume is processed through three depthwise-separable Conv3D blocks with channel progression $24\rightarrow48\rightarrow96$, followed by 3D ECA, global average pooling, and projection to a 128-dimensional MRI representation. In parallel, five phenotypic features are encoded using a $5\rightarrow32\rightarrow32$ MLP and projected to the same 128-dimensional space. The two representations are integrated through adaptive gated fusion and passed to a $128\rightarrow64\rightarrow2$ classification head. The complete model contains 71,558 trainable parameters. Each component is described below.
+ADHDNet consists of a lightweight 3D MRI encoder, a compact phenotypic encoder, and an adaptive gated fusion module (Fig.~\ref{fig:arch}). A $1\times64\times64\times64$ sMRI volume is processed through three depthwise-separable Conv3D blocks with channel progression $24\rightarrow48\rightarrow96$, followed by 3D ECA, global average pooling, and projection to a 128-dimensional MRI representation. In parallel, five phenotypic features are encoded by a $5\rightarrow32\rightarrow32$ MLP. A gating network computes fusion weights from the concatenated 160-dimensional vector of the MRI and phenotypic representations, the phenotypic representation is projected to 128 dimensions, and the two 128-dimensional representations are combined by gated element-wise fusion and passed to a $128\rightarrow64\rightarrow2$ classification head. The complete model contains 71,558 trainable parameters. Each component is described below.
 
 \begin{figure}[t]
 \centering
@@ -198,15 +198,16 @@ where $F$ represents the feature tensor and $A(F)$ the learned channel attention
 \subsection{Phenotypic Encoder}
 \label{sec:pheno}
 
-In parallel, the phenotypic branch encodes the five tabular variables into a compact representation. The phenotype encoder is a small multilayer perceptron with dimensions $5\rightarrow32\rightarrow32$. ReLU activation, batch normalization~\cite{ioffe2015bn}, and dropout~\cite{srivastava2014dropout} are used to regularize the representation. The resulting 32-dimensional phenotype representation is projected to 128 dimensions before multimodal fusion.
+In parallel, the phenotypic branch encodes the five tabular variables into a compact representation. The phenotype encoder is a small multilayer perceptron with dimensions $5\rightarrow32\rightarrow32$. ReLU activation, batch normalization~\cite{ioffe2015bn}, and dropout~\cite{srivastava2014dropout} are used to regularize the representation. The resulting 32-dimensional phenotype representation is used directly by the gating network and is separately projected to 128 dimensions for element-wise fusion (Sect.~\ref{sec:fusion}).
 
 \subsection{Adaptive Gated Fusion}
+\label{sec:fusion}
 
-The two modality-specific embeddings are subsequently integrated using adaptive gated fusion. Simple concatenation treats both modalities equally at the fusion stage; instead, ADHDNet employs a learnable gating mechanism, in the spirit of gated multimodal units~\cite{arevalo2017gmu}. Let $z_{MRI}\in\mathbb{R}^{128}$ denote the MRI representation and $z_{P}\in\mathbb{R}^{128}$ the projected phenotype representation. The two representations are first concatenated, $z=[z_{MRI};z_P]$, and a gating network generates
+The two modality-specific embeddings are subsequently integrated using adaptive gated fusion. Simple concatenation treats both modalities equally at the fusion stage; instead, ADHDNet employs a learnable gating mechanism, in the spirit of gated multimodal units~\cite{arevalo2017gmu}. The MRI branch produces a 128-dimensional representation $z_{MRI}\in\mathbb{R}^{128}$, while the phenotypic MLP produces a 32-dimensional representation $h_{P}\in\mathbb{R}^{32}$. These representations are concatenated to form a 160-dimensional vector $z=[z_{MRI};h_P]\in\mathbb{R}^{160}$, from which the gating network generates
 \begin{equation}
-g = \sigma\!\left(W_2\,\delta(W_1 z)\right),
+g = \sigma\!\left(W_2\,\delta(W_1 z)\right) \in \mathbb{R}^{128},
 \end{equation}
-where $\sigma$ denotes the sigmoid function and $\delta$ a nonlinear activation. The fused representation is then
+where $\sigma$ denotes the sigmoid function and $\delta$ a nonlinear activation. The phenotypic representation is independently projected to 128 dimensions, $z_P = \mathrm{Proj}(h_P) \in \mathbb{R}^{128}$, and the fused representation is computed by gated element-wise fusion:
 \begin{equation}
 z_F = g \odot z_{MRI} + (1-g) \odot z_P .
 \end{equation}
