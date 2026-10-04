@@ -230,7 +230,7 @@ Accuracy & AUC & Sensitivity & Specificity & Precision & NPV & F1-score \\
 \end{figure}
 
 \subsection{Cross-Validation and Computational Cost}
-Table~\ref{tab:compare} compares ADHDNet with the Conv3D comparator. In 5-fold cross-validation, ADHDNet obtained $87.52\pm4.61\%$ accuracy (per-fold range 79.80--90.91\%) and an AUC of $0.9512\pm0.0169$, compared with $86.51\pm3.64\%$ and $0.9566\pm0.0197$ for the comparator (Fig.~\ref{fig:cv_eff_abl}a). The two models performed similarly: ADHDNet had slightly higher mean accuracy, sensitivity, and F1-score, but a slightly lower mean AUC. The held-out accuracy of 90.00\% is at the upper end of the cross-validation range, so 87.52\% is the more representative estimate. With ADHDNet, the number of parameters was reduced by 94.8\% (19.2$\times$) and the FLOPs by 97.2\% (35.2$\times$), and the FP32 weight storage was reduced from 5.25 to 0.27\,MiB (Fig.~\ref{fig:cv_eff_abl}b). Latency was 1.8 times lower and batched throughput 2.7 times higher. A much smaller 3D backbone therefore did not reduce multimodal performance here. As the ablation shows, however, this performance does not come mainly from the MRI.
+Table~\ref{tab:compare} compares ADHDNet with the Conv3D comparator. In 5-fold cross-validation, ADHDNet obtained $87.52\pm4.61\%$ accuracy (per-fold range 79.80--90.91\%) and an AUC of $0.9512\pm0.0169$, compared with $86.51\pm3.64\%$ and $0.9566\pm0.0197$ for the comparator. The two models performed similarly: ADHDNet had slightly higher mean accuracy, sensitivity, and F1-score, but a slightly lower mean AUC. The held-out accuracy of 90.00\% is at the upper end of the cross-validation range, so 87.52\% is the more representative estimate. With ADHDNet, the number of parameters was reduced by 94.8\% (19.2$\times$) and the FLOPs by 97.2\% (35.2$\times$), and the FP32 weight storage was reduced from 5.25 to 0.27\,MiB (Fig.~\ref{fig:cv_eff_abl}a). Latency was 1.8 times lower and batched throughput 2.7 times higher. A much smaller 3D backbone therefore did not reduce multimodal performance here. As the ablation shows, however, this performance does not come mainly from the MRI.
 
 \begin{table}[t]
 \centering
@@ -260,7 +260,7 @@ Table~\ref{tab:compare} compares ADHDNet with the Conv3D comparator. In 5-fold c
 \end{table}
 
 \subsection{Ablation Study}
-The ablation variants (Table~\ref{tab:ablation}, Fig.~\ref{fig:cv_eff_abl}c) remove ECA (A1), remove the phenotypic branch (A2), replace gated fusion with concatenation (A3), or use standard convolutions (A4). Removing the phenotypic branch reduced performance to near chance (AUC 0.5644). The other variants changed accuracy by at most 3 points. With 100 validation subjects, one subject equals one percentage point, so small differences should be read with caution.
+The ablation variants (Table~\ref{tab:ablation}, Fig.~\ref{fig:cv_eff_abl}b) remove ECA (A1), remove the phenotypic branch (A2), replace gated fusion with concatenation (A3), or use standard convolutions (A4). Removing the phenotypic branch reduced performance to near chance (AUC 0.5644). The other variants changed accuracy by at most 3 points. With 100 validation subjects, one subject equals one percentage point, so small differences should be read with caution.
 
 \begin{table}[t]
 \centering
@@ -283,16 +283,13 @@ A4 & Standard Conv3D & \checkmark & \checkmark & Gated & 220,133 & 89.00 & 0.954
 
 \begin{figure}[t]
 \centering
-\begin{minipage}[b]{0.325\textwidth}\centering
-\IfFileExists{figs/cv_comparison_auc.png}{\includegraphics[width=0.98\linewidth]{figs/cv_comparison_auc.png}}{\fbox{\parbox[c][26mm][c]{\dimexpr0.98\linewidth-2\fboxsep-0.8pt\relax}{\centering\scriptsize Figure pending:\\\texttt{cv\_comparison\_auc.png}\\(per-fold AUC)}}}\\[1pt]{\small (a)}
-\end{minipage}\hfill
-\begin{minipage}[b]{0.325\textwidth}\centering
-\IfFileExists{figs/fig4_parameter_efficiency.png}{\includegraphics[width=0.98\linewidth]{figs/fig4_parameter_efficiency.png}}{\fbox{\parbox[c][26mm][c]{\dimexpr0.98\linewidth-2\fboxsep-0.8pt\relax}{\centering\scriptsize Figure pending:\\\texttt{fig4\_parameter\_\allowbreak efficiency.png}\\(parameters)}}}\\[1pt]{\small (b)}
-\end{minipage}\hfill
-\begin{minipage}[b]{0.325\textwidth}\centering
-\IfFileExists{figs/fig5_ablation_accuracy.png}{\includegraphics[width=0.98\linewidth]{figs/fig5_ablation_accuracy.png}}{\fbox{\parbox[c][26mm][c]{\dimexpr0.98\linewidth-2\fboxsep-0.8pt\relax}{\centering\scriptsize Figure pending:\\\texttt{fig5\_ablation\_accuracy.png}\\(ablation)}}}\\[1pt]{\small (c)}
+\begin{minipage}[b]{0.34\textwidth}\centering
+\includegraphics[width=\linewidth]{figs/fig4_parameter_efficiency.png}\\[1pt]{\small (a)}
+\end{minipage}\hspace{0.03\textwidth}
+\begin{minipage}[b]{0.6\textwidth}\centering
+\includegraphics[width=\linewidth]{figs/fig5_ablation_accuracy.png}\\[1pt]{\small (b)}
 \end{minipage}
-\caption{(a) Per-fold CV AUC; (b) parameters of ADHDNet and the comparator; (c) ablation accuracy.}
+\caption{(a) Parameters of ADHDNet and the Conv3D comparator; (b) held-out accuracy of the ablation variants.}
 \label{fig:cv_eff_abl}
 \end{figure}
 
