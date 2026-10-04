@@ -9,6 +9,7 @@
 \usepackage{graphicx}
 \graphicspath{{figs/}}
 \usepackage{amsmath,amssymb}
+\usepackage{bm}
 \usepackage{booktabs}
 \usepackage{float}
 \usepackage{multirow}
@@ -16,6 +17,7 @@
 \usepackage{tabularx}
 \newcolumntype{Y}{>{\raggedright\arraybackslash}X}
 \usepackage{tikz}
+\usepackage{placeins}
 \usetikzlibrary{positioning,arrows.meta,calc}
 \definecolor{adhdblue}{HTML}{2A6FB0}
 \usepackage{url}
@@ -44,15 +46,14 @@
 \setcounter{totalnumber}{4}
 
 \begin{document}
+\title{ADHDNet: A Lightweight Multimodal Framework for ADHD Classification Using Structural MRI and Phenotypic Features}
+\titlerunning{ADHDNet: Lightweight Multimodal Framework for ADHD Classification}
 
-\title{ADHDNet: A Lightweight Adaptive Multimodal 3D CNN for ADHD Classification Using Structural MRI and Phenotypic Features}
-\titlerunning{ADHDNet: Lightweight Multimodal 3D CNN for ADHD Classification}
+\author{Khushi Jindal\inst{1} \and Bindu Verma\inst{1}}
+\authorrunning{Khushi Jindal et al.}
 
-\author{Khushi Jindal}
-\authorrunning{K. Jindal}
-\institute{Department of Information Technology, Delhi Technological University, Delhi, India\\
-\email{khushijindal06@gmail.com}}
-
+\institute{Department of Information Technology, Delhi Technological University, Delhi, India \\
+\email{khushijindal06@gmail.com,bindu.cvision@gmail.com}}
 \maketitle
 
 \begin{abstract}
@@ -65,9 +66,9 @@ ADHD is diagnosed mainly through behavioral and clinical assessment, which has l
 \section{Introduction}
 %======================================================================
 
-Attention-Deficit/Hyperactivity Disorder (ADHD) is a neurodevelopmental disorder marked by persistent inattention, hyperactivity, and impulsivity. It is diagnosed mainly through behavioral and clinical assessment, which can be difficult because its symptoms overlap with those of other developmental and psychiatric conditions. This has motivated work on neuroimaging-based methods that look for brain patterns associated with ADHD~\cite{zhangjames2023,tian2024review,lohani2025review}.
+Attention-Deficit/Hyperactivity Disorder (ADHD) is a neurodevelopmental disorder marked by persistent inattention, hyperactivity, and impulsivity. It is diagnosed mainly through behavioral and clinical assessment, which can be difficult because its symptoms overlap with those of other developmental and psychiatric conditions. This has motivated work on neuroimaging-based methods that look for brain patterns associated with ADHD~\cite{zhangjames2023,tian2024review}.
 
-Structural magnetic resonance imaging (sMRI) shows brain anatomy without radiation and has been widely used for this purpose~\cite{chen2025meta}. In early studies, conventional classifiers were applied to measures such as gray-matter volume and cortical thickness~\cite{lohani2023}. Deep learning later made it possible to learn features directly from the images, and recent ADHD studies have used convolutional, multimodal, attention-based, and ensemble models~\cite{firouzi2024,hu2024,cao2024,pedrollo2026}. Multimodal models also add phenotypic features such as age, sex, and clinical ratings. As these models grow deeper and wider and use more complex fusion, the computational and memory cost rises. This matters when computing resources are limited, and compact models, such as the few-thousand-parameter network of Deepika et al.~\cite{deepika2025}, have been explored for this reason.
+Structural magnetic resonance imaging (sMRI) shows brain anatomy without radiation and has been widely used for this purpose~\cite{tian2024review}. In early studies, conventional classifiers were applied to measures such as gray-matter volume and cortical thickness~\cite{lohani2023}. Deep learning later made it possible to learn features directly from the images, and recent ADHD studies have used convolutional, transformer-based, graph-based, and multimodal models~\cite{firouzi2024,gulhan2025,wu2025hagcn,sorour2026}. Multimodal models also add phenotypic features such as age, sex, and clinical ratings. As these models grow deeper and wider and use more complex fusion, the computational and memory cost rises. This matters when computing resources are limited, and compact models, such as the few-thousand-parameter network of Deepika et al.~\cite{deepika2025}, have been explored for this reason.
 
 Three questions follow from this. Can structural MRI and phenotypic features be modeled together at a much lower computational cost? Can a small 3D model keep the performance of a larger one? And does the resulting performance come from the MRI, from the phenotypic features, or from particular model components? No new building blocks are proposed. Instead, established efficient components are combined in a model called \emph{ADHDNet}, and this combination is tested under controlled conditions. The main contributions of this study are:
 \begin{enumerate}
@@ -82,38 +83,41 @@ Three questions follow from this. Can structural MRI and phenotypic features be 
 %======================================================================
 
 \subsection{MRI-Based ADHD Classification}
-In early MRI-based studies of ADHD, handcrafted features were used with conventional classifiers~\cite{zhangjames2023,tian2024review,lohani2025review}. For example, Lohani and Rana~\cite{lohani2023} combined gray-matter volume and cortical-thickness features with personal characteristics and reported 75\% accuracy with repeated ten-fold cross\-validation. Later work learns features directly from the data. CNNs have been applied to fMRI~\cite{firouzi2024,gulhan2025}, graph-based models of resting-state networks have been combined with ensemble classifiers or attention~\cite{zamanzadeh2024,wu2025hagcn}, and Pedrollo et al.~\cite{pedrollo2026} used CNN ensembles on resting-state fMRI. These studies show that ADHD-related features can be learned from neuroimaging data. The focus, however, is on accuracy: parameter count, FLOPs, memory use, and latency are rarely reported, so it is hard to judge whether such 3D models can run with limited computing resources.
+In early MRI-based studies of ADHD, handcrafted features were used with conventional classifiers~\cite{zhangjames2023,tian2024review}. For example, Lohani and Rana~\cite{lohani2023} combined gray-matter volume and cortical-thickness features with personal characteristics and reported 75\% accuracy with repeated ten-fold cross\-validation. Later work learns features directly from the data. CNNs have been applied to fMRI~\cite{firouzi2024,gulhan2025}, graph-based models of resting-state networks have been combined with ensemble classifiers or attention~\cite{zamanzadeh2024,wu2025hagcn}. Recent structural MRI studies have explored transformer and representation-learning approaches. Sorour et al.~\cite{sorour2026} combined a Vision Transformer with an enhanced CNN on raw and transformed MRI representations and reported 99.4\% accuracy, but with 86.19M parameters. Maeda et al.~\cite{maeda2026} applied a Vision Transformer with a gross-region grid to individual-space T1 images (AUC 75.0\%), and Gonz\'alez et al.~\cite{gonzalez2026} quantified morphological alterations with a curvelet-based sMRI representation (balanced accuracy 78.0\%). These studies show that ADHD-related features can be learned from neuroimaging data. The focus, however, is on accuracy: parameter count, FLOPs, memory use, and latency are rarely reported, so it is hard to judge whether such 3D models can run with limited computing resources.
 
 \subsection{Multimodal ADHD Classification}
-Phenotypic features such as age, sex, medication status, and clinical ratings can carry information that the images do not. Deepika et al.~\cite{deepika2024} combined resting-state functional connectivity with phenotypic data and reported that adding the phenotypic data raised accuracy to 77.59\%. A recent preprint has also combined 3D structural MRI with clinical phenotypes and reported 87\% accuracy on the Peking-1 subset of ADHD-200.% TODO: add \cite{...} once the 2026 preprint's bibliographic details are verified; remove this sentence if these cannot be verified.
+Phenotypic features such as age, sex, medication status, and clinical ratings can carry information that the images do not. Deepika et al.~\cite{deepika2024} combined resting-state functional connectivity with phenotypic data and reported that adding the phenotypic data raised accuracy to 77.59\%. Neither Maeda et al.~\cite{maeda2026} nor Gonz\'alez et al.~\cite{gonzalez2026} fuses phenotypic features with the imaging data.
  These studies suggest that phenotypic features can complement imaging, but the contribution of each modality is usually not separated within the same model. A gain attributed to multimodal learning may therefore come from the predictive strength of the phenotypic features rather than from extra information in the images.
 
 \subsection{Lightweight Models}
-Depthwise-separable convolution~\cite{chollet2017xception,howard2017mobilenets} splits spatial filtering and channel mixing into two steps and is a standard way to reduce the number of parameters in a CNN. Efficient channel attention (ECA)~\cite{wang2020eca} reweights feature channels using very few parameters. In ADHD classification, compact models have so far worked on derived features rather than 3D images~\cite{deepika2025}. To the best of the author's knowledge, these techniques have not been combined in a small 3D multimodal model for ADHD with the computational cost measured explicitly.
+Depthwise-separable convolution~\cite{chollet2017xception} splits spatial filtering and channel mixing into two steps and is a standard way to reduce the number of parameters in a CNN. Efficient channel attention (ECA)~\cite{wang2020eca} reweights feature channels using very few parameters. In ADHD classification, compact models have so far worked on derived features rather than 3D images~\cite{deepika2025}. To the best of the author's knowledge, these techniques have not been combined in a small 3D multimodal model for ADHD with the computational cost measured explicitly.
 
 \subsection{Adaptive Multimodal Fusion}
 Concatenation combines the features of each modality in the same way for every sample. Gated multimodal units~\cite{arevalo2017gmu} instead learn gates that weight each modality per sample. No controlled test of whether such gating helps over concatenation for MRI and phenotypic data in ADHD appears to have been reported. This is therefore treated as an open question rather than assumed.
 
 \begin{table}[t]
 \centering
-\caption{Selected recent ADHD classification studies on ADHD-200 data. Accuracies are not directly comparable because modalities and protocols differ.}
+\caption{Selected recent ADHD classification studies. Performance values are not directly comparable because modalities, cohorts, and protocols differ.}
 \label{tab:literature}
 {\scriptsize
 \setlength{\tabcolsep}{2pt}
-\begin{tabularx}{\textwidth}{@{}>{\raggedright\arraybackslash}p{1.75cm} c >{\raggedright\arraybackslash}p{1.45cm} >{\raggedright\arraybackslash}p{1.95cm} >{\raggedleft\arraybackslash}p{1.12cm} >{\raggedleft\arraybackslash}p{0.8cm} Y@{}}
+\begin{tabularx}{\textwidth}{@{}>{\raggedright\arraybackslash}p{1.75cm} c >{\raggedright\arraybackslash}p{1.45cm} >{\raggedright\arraybackslash}p{1.95cm} >{\raggedleft\arraybackslash}p{1.12cm} >{\raggedright\arraybackslash}p{1.15cm} Y@{}}
 \toprule
-Study & Year & Modality & Model & Params & Acc. (\%) & Limitations \\
+Study & Year & Modality & Model & Params & Perf.\ (\%) & Limitations \\
 \midrule
-Lohani \& Rana~\cite{lohani2023} & 2023 & sMRI + personal char. & SVM/RF/KNN & NR & 75.0 & Handcrafted features \\
-Gülhan \& Özmen~\cite{gulhan2025} & 2024 & fMRI & 3D CNN & NR & 76.19$^{\dagger}$ & fMRI only; site-dependent accuracy \\
-Deepika et al.~\cite{deepika2024} & 2024 & rs-fMRI + phenotypic & Multimodality model & NR & 77.59 & Atlas-dependent; no efficiency analysis \\
-Zamanzadeh et al.~\cite{zamanzadeh2024} & 2024 & rs-fMRI & EasyEnsemble & NR & 74.30 & Handcrafted graph features \\
-Wu et al.~\cite{wu2025hagcn} & 2025 & rs-fMRI & HAGCN & NR & 77.95 & Requires network construction \\
-Deepika et al.~\cite{deepika2025} & 2025 & MRI-derived features & Lightweight attention-KAN & Few thousand & 79.25 & Derived features, not volumes \\
-\textbf{ADHDNet (ours)} & \textbf{2026} & \textbf{3D sMRI + phenotype} & \textbf{DS-Conv3D + ECA + gated fusion} & \textbf{0.0716M} & \textbf{90.0}$^{\ddagger}$ & Phenotype-driven; no external test \\
+Lohani \& Rana~\cite{lohani2023} & 2023 & sMRI + personal char. & SVM/RF/KNN & NR & Acc.\ 75.0 & Handcrafted features \\
+Gülhan \& Özmen~\cite{gulhan2025} & 2024 & fMRI & 3D CNN & NR & Acc.\ 76.19$^{\dagger}$ & fMRI only; site-dependent accuracy \\
+Deepika et al.~\cite{deepika2024} & 2024 & rs-fMRI + phenotypic & Multimodality model & NR & Acc.\ 77.59 & Feature-dependent; no efficiency analysis \\
+Zamanzadeh et al.~\cite{zamanzadeh2024} & 2024 & rs-fMRI & EasyEnsemble & NR & Acc.\ 74.30 & Handcrafted graph features \\
+Wu et al.~\cite{wu2025hagcn} & 2025 & rs-fMRI & HAGCN & NR & Acc.\ 77.95 & Requires network construction \\
+Deepika et al.~\cite{deepika2025} & 2025 & MRI-derived features & Lightweight attention-KAN & Few thousand & Acc.\ 79.25 & Derived features, not raw volumes \\
+Sorour et al.~\cite{sorour2026} & 2026 & MRI & ViT + ECNN & 86.19M & Acc.\ 99.4 & Pre-extracted 2D slices rather than subject-level 3D learning; very high parameter count \\
+Maeda et al.~\cite{maeda2026} & 2026 & T1-weighted sMRI & ViT + gross-region grid & NR & AUC 75.0 & No multimodal phenotype fusion \\
+González et al.~\cite{gonzalez2026} & 2026 & sMRI & Curvelet-based representation & NR & BA 78.0 & Not end-to-end; no deep volumetric fusion \\
+\textbf{ADHDNet (ours)} & \textbf{2026} & \textbf{3D sMRI + phenotype} & \textbf{DS-Conv3D + ECA + gated fusion} & \textbf{0.0716M} & \textbf{Acc.\ 90.0}$^{\ddagger}$ & Phenotype-driven; no external test \\
 \bottomrule
 \end{tabularx}}\par\vspace{2pt}
-{\raggedright\scriptsize NR: not reported. $^{\dagger}$Best per-site accuracy (NeuroIMAGE 76.19\%, NYU 69.92\%, PU 70.77\%). $^{\ddagger}$Held-out split; 5-fold cross-validation: $87.52\pm4.61\%$.\par}
+{\raggedright\scriptsize NR: not reported; Acc.: accuracy; BA: balanced accuracy. $^{\dagger}$Best per-site accuracy (NeuroIMAGE 76.19\%, NYU 69.92\%, PU 70.77\%). $^{\ddagger}$Held-out split; 5-fold cross-validation: $87.52\pm4.61\%$.\par}
 \end{table}
 
 \subsection{Research Gap}
@@ -128,10 +132,10 @@ The preprocessed anatomical data of the public ADHD-200 dataset~\cite{adhd200con
 
 \begin{table}[!htb]
 \centering
-\caption{ADHD-200 anatomical data by site; Pittsburgh was excluded (no ADHD subjects).}
+\caption{ADHD-200 anatomical data description}
 \label{tab:dataset}
 {\small
-\setlength{\tabcolsep}{4.5pt}
+\setlength{\tabcolsep}{4.5 pt}
 \begin{tabular}{lrrrrrrr}
 \toprule
  & KKI & NYU & OHSU & Peking\_1 & NeuroIMAGE & Pittsburgh & \textbf{Final} \\
@@ -140,29 +144,30 @@ ADHD & 22 & 115 & 36 & 24 & 25 & 0 & \textbf{222} \\
 Control & 60 & 96 & 35 & 61 & 23 & 78 & \textbf{275} \\
 Total & 82 & 211 & 71 & 85 & 48 & 78 & \textbf{497} \\
 ADHD (\%) & 26.8 & 54.5 & 50.7 & 28.2 & 52.1 & 0.0 & \textbf{44.7} \\
-Status & Incl. & Incl. & Incl. & Incl. & Incl. & Excl. & \\
 \bottomrule
 \end{tabular}}
 \end{table}
 
 \subsection{Preprocessing and Phenotypic Features}
-Each NIfTI volume was resized to $64\times64\times64$ voxels with trilinear interpolation and min-max normalized to $[0,1]$. To keep the pipeline simple and reproducible, no additional skull stripping, registration, bias correction, or segmentation was applied. Five phenotypic features were used: age, sex, medication status, acquisition site, and ADHD Index. The ADHD Index is a clinical symptom score that is closely related to the diagnostic label; it is treated as a phenotypic feature, not as an imaging feature. Missing values (coded \texttt{-999}) were filled with the training-set median (continuous) or mode (categorical). Age and ADHD Index were z-scored with training-set statistics, and categorical features were scaled to $[0,1]$.
+Each NIfTI volume was resized to $64\times64\times64$ voxels with trilinear interpolation and min-max normalized to $[0,1]$. To keep the pipeline simple and reproducible, no additional skull stripping, registration, bias correction, or segmentation was applied. Five phenotypic features were used: age, sex, medication status, acquisition site, and ADHD Index. The ADHD Index is a clinical symptom score that is closely related to the diagnostic label; it is treated as a phenotypic feature, not as an imaging feature. Missing values were filled with the training-set median (continuous) or mode (categorical). Age and ADHD Index were z-scored with training-set statistics, and categorical features were scaled to $[0,1]$.
 
 %======================================================================
 \section{Proposed ADHDNet}
 %======================================================================
 
-ADHDNet (Fig.~\ref{fig:arch}; 71,552 parameters) has a 3D MRI encoder, a phenotypic encoder, a gated fusion module, and a classification head.
+To enable efficient learning of discriminative representations from structural MRI while incorporating complementary phenotypic information, this study proposes ADHDNet (Fig.~\ref{fig:arch}), a lightweight multimodal 3D deep learning framework for ADHD classification. The framework jointly learns MRI representations and phenotypic representations and adaptively integrates them through a gated fusion mechanism. With only 71,552 trainable parameters, ADHDNet is designed to provide an efficient alternative to conventional 3D CNN-based multimodal models. As illustrated in Fig.~\ref{fig:arch}, the proposed architecture consists of four main components: a lightweight 3D MRI encoder, a phenotypic encoder, an adaptive gated fusion module, and a classification head.
 
-\begin{figure}[t]
-\centering
-\includegraphics[width=0.46\textwidth]{figs/fig1_architecture.png}
-\caption{Architecture of ADHDNet: a depthwise-separable 3D MRI encoder with 3D ECA, an MLP phenotypic encoder, and adaptive gated fusion followed by a classification head.}
-\label{fig:arch}
+\begin{figure}[H]
+    \centering
+\includegraphics[width=0.99\textwidth,height=0.46\textheight,keepaspectratio]{figs/ADHDNet.png}
+    \caption{Architecture of ADHDNet: a depthwise-separable 3D MRI encoder with 3D ECA, an MLP phenotypic encoder, and adaptive gated fusion followed by a classification head.}
+    \label{fig:arch}
 \end{figure}
 
+\FloatBarrier
+
 \paragraph{Lightweight 3D MRI Encoder.}
-In 3D CNNs, most parameters and computation come from the convolutions, because a standard 3D convolution with kernel size $K$ needs $K^3C_{in}C_{out}$ weights. Let $X\in\mathbb{R}^{1\times64\times64\times64}$ be the normalized sMRI volume. The encoder passes $X$ through three blocks that reduce the resolution and increase the number of channels ($24\rightarrow48\rightarrow96$ channels; $64^3\rightarrow8^3$). Each block uses a $3\times3\times3$ depthwise convolution followed by a $1\times1\times1$ pointwise convolution~\cite{chollet2017xception,howard2017mobilenets}, then batch normalization~\cite{ioffe2015bn}, ReLU, and $2\times2\times2$ max pooling:
+In 3D CNNs, most parameters and computation come from the convolutions, because a standard 3D convolution with kernel size $K$ needs $K^3C_{in}C_{out}$ weights. Let $X\in\mathbb{R}^{1\times64\times64\times64}$ be the normalized sMRI volume. The encoder passes $X$ through three blocks that reduce the resolution and increase the number of channels ($24\rightarrow48\rightarrow96$ channels; $64^3\rightarrow8^3$). Each block uses a $3\times3\times3$ depthwise convolution followed by a $1\times1\times1$ pointwise convolution~\cite{chollet2017xception}, then batch normalization, ReLU, and $2\times2\times2$ max pooling:
 \begin{equation}
 H_{l} = \mathrm{MaxPool}\big(\mathrm{ReLU}(\mathrm{BN}(\mathrm{PW}_l(\mathrm{DW}_l(H_{l-1}))))\big), \quad H_0 = X.
 \end{equation}
@@ -176,7 +181,7 @@ F_{att} = \sigma\big(\mathrm{Conv1D}_k(\mathrm{GAP}(F))\big)\odot F,
 where GAP is global average pooling. The 1D convolution across channels has a kernel size chosen from the number of channels ($k=3$ for 96 channels), so the module adds only three parameters. $F_{att}$ is then average-pooled and projected to the MRI embedding $z_{MRI}\in\mathbb{R}^{128}$. Its contribution is evaluated by removing ECA in ablation A1.
 
 \paragraph{Phenotypic Encoder and Gated Fusion.}
-The two modalities may not contribute equally for every subject. A learnable gating function is therefore used to adjust the contribution of each modality per subject. A $5\rightarrow32\rightarrow32$ MLP with batch normalization, ReLU, and dropout~\cite{srivastava2014dropout} maps the phenotypic features to $h_P\in\mathbb{R}^{32}$. Following gated multimodal units~\cite{arevalo2017gmu}, a gating network computes a gate vector $g$ from the 160-dimensional concatenation $[z_{MRI};h_P]$, and $h_P$ is projected to the phenotype embedding $z_P\in\mathbb{R}^{128}$:
+The two modalities may not contribute equally for every subject. A learnable gating function is therefore used to adjust the contribution of each modality per subject. A $5\rightarrow32\rightarrow32$ MLP with batch normalization, ReLU, and dropout maps the phenotypic features to $h_P\in\mathbb{R}^{32}$. Following gated multimodal units~\cite{arevalo2017gmu}, a gating network computes a gate vector $g$ from the 160-dimensional concatenation $[z_{MRI};h_P]$, and $h_P$ is projected to the phenotype embedding $z_P\in\mathbb{R}^{128}$:
 \begin{equation}
 g=\sigma\big(W_2\,\delta(W_1[z_{MRI};h_P])\big)\in\mathbb{R}^{128}, \qquad z_F = g \odot z_{MRI} + (1-g) \odot z_P,
 \end{equation}
@@ -187,7 +192,7 @@ where $\delta$ is the ReLU. A $128\rightarrow64\rightarrow2$ head with dropout m
 %======================================================================
 
 \paragraph{Training.}
-All models were implemented in PyTorch~\cite{paszke2019pytorch} and trained with AdamW~\cite{loshchilov2019adamw} (learning rate $10^{-4}$, weight decay $10^{-4}$), batch size 8, at most 150 epochs with early stopping (patience 15), class-weighted cross-entropy with label smoothing~\cite{szegedy2016inception} of 0.1, gradient clipping at 1.0, and cosine annealing~\cite{loshchilov2017sgdr}. Training volumes were randomly flipped along each axis ($p=0.5$). The checkpoint with the best validation AUC was kept, and all seeds were fixed to 42.
+All models were implemented in PyTorch and trained with AdamW (learning rate $10^{-4}$, weight decay $10^{-4}$), batch size 8, at most 150 epochs with early stopping (patience 15), class-weighted cross-entropy with label smoothing of 0.1, gradient clipping at 1.0, and cosine annealing. Training volumes were randomly flipped along each axis ($p=0.5$). The checkpoint with the best validation AUC was kept, and all seeds were fixed to 42.
 
 \paragraph{Comparator.}
 As a reference, a conventional Conv3D multimodal model was built in the same code base. It uses the same preprocessing, data splits, fusion mechanism, training settings, and evaluation, so differences in cost and performance come mainly from its larger 3D backbone and embeddings. It has four standard Conv3D blocks ($32\rightarrow64\rightarrow128\rightarrow256$ channels) with 3D ECA after blocks 2--4, generalized-mean pooling, a 256-dimensional embedding, a $5\rightarrow32\rightarrow64\rightarrow64$ phenotypic MLP, the same gated fusion, and a $256\rightarrow128\rightarrow64\rightarrow2$ head (1,376,080 parameters).
@@ -298,24 +303,8 @@ A4 & Standard Conv3D & \checkmark & \checkmark & Gated & 220,133 & 89.00 & 0.954
 %======================================================================
 
 Cross-validated performance similar to that of the much larger comparator was obtained with ADHDNet. The ablation, however, shows that this performance comes mainly from the phenotypic features rather than from structural MRI.
-
-\paragraph{Parameter Efficiency.}
-Using standard instead of depthwise-separable convolutions (A4) tripled the number of parameters but did not improve accuracy or AUC on this split. The extra convolutional capacity was therefore not useful in this setting.
-
-\paragraph{Channel Attention.}
-Removing ECA (A1) lowered accuracy by 3.0 points, which is three validation subjects. ECA is best seen as a cheap refinement whose benefit still needs to be confirmed with repeated runs.
-
-\paragraph{Multimodal Fusion.}
-Without the phenotypic branch (A2), performance was close to chance, while every variant that kept it reached an AUC above 0.94. Gated fusion did not clearly outperform concatenation (A3), so its benefit is not yet established.
-
-\paragraph{What the Results Do Not Show.}
-The phenotypic features include the ADHD Index, a symptom score closely related to the diagnosis, and site, whose class proportions differ strongly (Table~\ref{tab:dataset}). The reported accuracy therefore does not show that structural MRI, as used here, can distinguish ADHD from controls. It should also not be read as clinically usable diagnostic performance.
-
-\paragraph{Comparison with Prior Work.}
-ADHDNet's accuracy is numerically higher than the values in Table~\ref{tab:literature}, but those studies use different modalities and protocols. The main point of this study is therefore not higher accuracy. It is the combination of a compact 3D multimodal model with a controlled analysis of its cost and of what each component contributes.
-
-\paragraph{Limitations and Future Work.}
-Performance depends mainly on the phenotypic features. Metrics were taken at the epoch with the best validation AUC, and there was no external test set. Generalization across sites was not evaluated. The ablation used a single split without repeated runs. The simple preprocessing may limit the anatomical information available to the MRI branch. Finally, only one compact model was evaluated, so the trade-off between cost and performance may differ for other lightweight 3D models.
+Using standard instead of depthwise-separable convolutions (A4) tripled the number of parameters but did not improve accuracy or AUC on this split. The extra convolutional capacity was therefore not useful in this setting. Removing ECA (A1) lowered accuracy by 3.0 points, which is three validation subjects. ECA is best seen as a cheap refinement whose benefit still needs to be confirmed with repeated runs. Without the phenotypic branch (A2), performance was close to chance, while every variant that kept it reached an AUC above 0.94. Gated fusion did not clearly outperform concatenation (A3), so its benefit is not yet established.
+The phenotypic features include the ADHD Index, a symptom score closely related to the diagnosis, and site, whose class proportions differ strongly (Table~\ref{tab:dataset}). The reported accuracy therefore does not show that structural MRI, as used here, can distinguish ADHD from controls. It should also not be read as clinically usable diagnostic performance. ADHDNet's accuracy is numerically higher than the values in Table~\ref{tab:literature}, but those studies use different modalities and protocols. The main point of this study is therefore not higher accuracy. It is the combination of a compact 3D multimodal model with a controlled analysis of its cost and of what each component contributes.
 
 %======================================================================
 \section{Conclusion}

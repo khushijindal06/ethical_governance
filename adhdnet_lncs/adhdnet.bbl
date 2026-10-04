@@ -34,20 +34,6 @@ L.~Tian, H.~Zheng, K.~Zhang, J.~Qiu, X.~Song, S.~Li, Z.~Zeng, B.~Ran, X.~Deng,
   systematic review and meta-analysis,'' \emph{Journal of Affective Disorders},
   vol. 355, pp. 459--469, 2024, doi: 10.1016/j.jad.2024.03.111.
 
-\bibitem{lohani2025review}
-D.~C. Lohani, V.~Chawla, and B.~Rana, ``A systematic literature review of
-  machine learning techniques for the detection of
-  attention-deficit/hyperactivity disorder using {MRI} and/or {EEG} data,''
-  \emph{Neuroscience}, vol. 570, pp. 110--131, 2025, doi:
-  10.1016/j.neuroscience.2025.02.019.
-
-\bibitem{chen2025meta}
-C.~Chen, S.~Sun, R.~Chen, Z.~Guo, X.~Tang \emph{et~al.}, ``A multimodal
-  neuroimaging meta-analysis of functional and structural brain abnormalities
-  in attention-deficit/hyperactivity disorder,'' \emph{Progress in
-  Neuro-Psychopharmacology and Biological Psychiatry}, vol. 136, p. 111199,
-  2025, doi: 10.1016/j.pnpbp.2024.111199.
-
 \bibitem{lohani2023}
 D.~C. Lohani and B.~Rana, ``{ADHD} diagnosis using structural brain {MRI} and
   personal characteristic data with machine learning framework,''
@@ -60,22 +46,23 @@ M.~Firouzi, K.~Kazemi, M.~Ahmadi, M.~S. Helfroush, and A.~Aarabi, ``Enhanced
   analysis,'' \emph{Scientific Reports}, vol.~14, p. 24473, 2024, doi:
   10.1038/s41598-024-74282-y.
 
-\bibitem{hu2024}
-R.~Hu, K.~Zhu, Z.~Hou, R.~Wang, and F.~Liu, ``Enhanced {ADHD} detection:
-  Frequency information embedded in a visual-language framework,''
-  \emph{Displays}, vol.~83, p. 102712, 2024, doi: 10.1016/j.displa.2024.102712.
+\bibitem{gulhan2025}
+P.~G. G{\"u}lhan and G.~{\"O}zmen, ``The use of {fMRI} regional analysis to
+  automatically detect {ADHD} through a {3D} {CNN}-based approach,''
+  \emph{Journal of Imaging Informatics in Medicine}, vol.~38, pp. 203--216,
+  2025, doi: 10.1007/s10278-024-01189-5.
 
-\bibitem{cao2024}
-C.~Cao, H.~Fu, G.~Li, M.~Wang, and X.~Gao, ``{ADHD} diagnosis guided by
-  functional brain networks combined with domain knowledge,'' \emph{Computers
-  in Biology and Medicine}, vol. 177, p. 108611, 2024, doi:
-  10.1016/j.compbiomed.2024.108611.
+\bibitem{wu2025hagcn}
+X.~Wu, X.~Wen, J.~Sun, Y.~Dong, C.~Wu, B.~Wang, and J.~Xiang, ``{HAGCN}: A
+  hybrid-order brain network-based graph convolution learning framework with
+  multi-head attention for brain disorder classification,'' \emph{Biomedical
+  Signal Processing and Control}, vol. 100, p. 106944, 2025, doi:
+  10.1016/j.bspc.2024.106944.
 
-\bibitem{pedrollo2026}
-G.~R. Pedrollo, A.~R. Franco, and A.~Balbinot,
-  ``Attention-deficit/hyperactivity disorder classification in functional
-  magnetic resonance images with deep learning,'' \emph{Research on Biomedical
-  Engineering}, vol.~42, p.~25, 2026, doi: 10.1007/s42600-026-00471-5.
+\bibitem{sorour2026}
+S.~Sorour \emph{et~al.}, ``Hybrid {Vi+ECNN} framework for advanced {ADHD}
+  diagnostic accuracy in medical imaging,'' \emph{Scientific Reports}, 2026,
+  doi: 10.1038/s41598-026-50791-w.
 
 \bibitem{deepika2025}
 Deepika, M.~Sharma, and S.~Arora, ``Redefining parameter-efficiency in {ADHD}
@@ -84,24 +71,22 @@ Deepika, M.~Sharma, and S.~Arora, ``Redefining parameter-efficiency in {ADHD}
   \emph{Psychiatry Research: Neuroimaging}, vol. 351, p. 112016, 2025, doi:
   10.1016/j.pscychresns.2025.112016.
 
-\bibitem{gulhan2025}
-P.~G. G{\"u}lhan and G.~{\"O}zmen, ``The use of {fMRI} regional analysis to
-  automatically detect {ADHD} through a {3D} {CNN}-based approach,''
-  \emph{Journal of Imaging Informatics in Medicine}, vol.~38, pp. 203--216,
-  2025, doi: 10.1007/s10278-024-01189-5.
-
 \bibitem{zamanzadeh2024}
 M.~Zamanzadeh, A.~Pourhedayat, F.~Bakouie, and F.~Hadaeghi, ``Exploring
   potential {ADHD} biomarkers through advanced machine learning: An examination
   of audiovisual integration networks,'' \emph{Computers in Biology and
   Medicine}, vol. 183, p. 109240, 2024, doi: 10.1016/j.compbiomed.2024.109240.
 
-\bibitem{wu2025hagcn}
-X.~Wu, X.~Wen, J.~Sun, Y.~Dong, C.~Wu, B.~Wang, and J.~Xiang, ``{HAGCN}: A
-  hybrid-order brain network-based graph convolution learning framework with
-  multi-head attention for brain disorder classification,'' \emph{Biomedical
-  Signal Processing and Control}, vol. 100, p. 106944, 2025, doi:
-  10.1016/j.bspc.2024.106944.
+\bibitem{maeda2026}
+Y.~Maeda, T.~Okimura, T.~Itahashi, and Y.~Fukazawa, ``{ADHD} prediction from
+  individual-space {T1} images using a {Vision Transformer} with a gross-region
+  grid framework,'' \emph{Neuroscience Research}, vol. 227, p. 105054, 2026,
+  doi: 10.1016/j.neures.2026.105054.
+
+\bibitem{gonzalez2026}
+J.~Gonz{\'a}lez, J.~Tarquino, and E.~Romero, ``Quantifying brain morphological
+  alterations in {ADHD}: a curvelet-based structural {MRI} study,''
+  \emph{Scientific Reports}, 2026, doi: 10.1038/s41598-026-66808-3.
 
 \bibitem{deepika2024}
 Deepika, M.~Sharma, and S.~Arora, ``Multimodality model investigating the
@@ -114,12 +99,6 @@ Deepika, M.~Sharma, and S.~Arora, ``Multimodality model investigating the
 F.~Chollet, ``Xception: Deep learning with depthwise separable convolutions,''
   in \emph{Proceedings of the IEEE Conference on Computer Vision and Pattern
   Recognition (CVPR)}, 2017, pp. 1251--1258, doi: 10.1109/CVPR.2017.195.
-
-\bibitem{howard2017mobilenets}
-A.~G. Howard, M.~Zhu, B.~Chen, D.~Kalenichenko, W.~Wang, T.~Weyand,
-  M.~Andreetto, and H.~Adam, ``{MobileNets}: Efficient convolutional neural
-  networks for mobile vision applications,'' arXiv preprint arXiv:1704.04861,
-  2017.
 
 \bibitem{wang2020eca}
 Q.~Wang, B.~Wu, P.~Zhu, P.~Li, W.~Zuo, and Q.~Hu, ``{ECA-Net}: Efficient
@@ -144,38 +123,5 @@ P.~Bellec, C.~Chu, F.~Chouinard-Decorte, Y.~Benhajali, D.~S. Margulies, and
   R.~C. Craddock, ``The {Neuro Bureau} {ADHD-200} {Preprocessed} repository,''
   \emph{NeuroImage}, vol. 144, pp. 275--286, 2017, doi:
   10.1016/j.neuroimage.2016.06.034.
-
-\bibitem{ioffe2015bn}
-S.~Ioffe and C.~Szegedy, ``Batch normalization: Accelerating deep network
-  training by reducing internal covariate shift,'' in \emph{Proceedings of the
-  32nd International Conference on Machine Learning (ICML)}, 2015, pp.
-  448--456.
-
-\bibitem{srivastava2014dropout}
-N.~Srivastava, G.~Hinton, A.~Krizhevsky, I.~Sutskever, and R.~Salakhutdinov,
-  ``Dropout: A simple way to prevent neural networks from overfitting,''
-  \emph{Journal of Machine Learning Research}, vol.~15, no.~56, pp. 1929--1958,
-  2014.
-
-\bibitem{paszke2019pytorch}
-A.~Paszke, S.~Gross, F.~Massa, A.~Lerer, J.~Bradbury, G.~Chanan, T.~Killeen,
-  Z.~Lin, N.~Gimelshein, L.~Antiga \emph{et~al.}, ``{PyTorch}: An imperative
-  style, high-performance deep learning library,'' in \emph{Advances in Neural
-  Information Processing Systems (NeurIPS)}, vol.~32, 2019, pp. 8024--8035.
-
-\bibitem{loshchilov2019adamw}
-I.~Loshchilov and F.~Hutter, ``Decoupled weight decay regularization,'' in
-  \emph{International Conference on Learning Representations (ICLR)}, 2019.
-
-\bibitem{szegedy2016inception}
-C.~Szegedy, V.~Vanhoucke, S.~Ioffe, J.~Shlens, and Z.~Wojna, ``Rethinking the
-  inception architecture for computer vision,'' in \emph{Proceedings of the
-  IEEE Conference on Computer Vision and Pattern Recognition (CVPR)}, 2016, pp.
-  2818--2826, doi: 10.1109/CVPR.2016.308.
-
-\bibitem{loshchilov2017sgdr}
-I.~Loshchilov and F.~Hutter, ``{SGDR}: Stochastic gradient descent with warm
-  restarts,'' in \emph{International Conference on Learning Representations
-  (ICLR)}, 2017.
 
 \end{thebibliography}
