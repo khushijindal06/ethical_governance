@@ -34,6 +34,13 @@ L.~Tian, H.~Zheng, K.~Zhang, J.~Qiu, X.~Song, S.~Li, Z.~Zeng, B.~Ran, X.~Deng,
   systematic review and meta-analysis,'' \emph{Journal of Affective Disorders},
   vol. 355, pp. 459--469, 2024, doi: 10.1016/j.jad.2024.03.111.
 
+\bibitem{lohani2025review}
+D.~C. Lohani, V.~Chawla, and B.~Rana, ``A systematic literature review of
+  machine learning techniques for the detection of
+  attention-deficit/hyperactivity disorder using {MRI} and/or {EEG} data,''
+  \emph{Neuroscience}, vol. 570, pp. 110--131, 2025, doi:
+  10.1016/j.neuroscience.2025.02.019.
+
 \bibitem{lohani2023}
 D.~C. Lohani and B.~Rana, ``{ADHD} diagnosis using structural brain {MRI} and
   personal characteristic data with machine learning framework,''
@@ -99,6 +106,12 @@ Deepika, M.~Sharma, and S.~Arora, ``Multimodality model investigating the
 F.~Chollet, ``Xception: Deep learning with depthwise separable convolutions,''
   in \emph{Proceedings of the IEEE Conference on Computer Vision and Pattern
   Recognition (CVPR)}, 2017, pp. 1251--1258, doi: 10.1109/CVPR.2017.195.
+
+\bibitem{howard2017mobilenets}
+A.~G. Howard, M.~Zhu, B.~Chen, D.~Kalenichenko, W.~Wang, T.~Weyand,
+  M.~Andreetto, and H.~Adam, ``{MobileNets}: Efficient convolutional neural
+  networks for mobile vision applications,'' arXiv preprint arXiv:1704.04861,
+  2017.
 
 \bibitem{wang2020eca}
 Q.~Wang, B.~Wu, P.~Zhu, P.~Li, W.~Zuo, and Q.~Hu, ``{ECA-Net}: Efficient
