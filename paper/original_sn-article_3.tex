@@ -1,0 +1,803 @@
+\documentclass[default, iicol]{sn-jnl}
+\usepackage{graphicx}%
+\usepackage{multirow}%
+\usepackage{amsmath,amssymb,amsfonts}%
+\usepackage{amsthm}%
+\usepackage{mathrsfs}%
+\usepackage[title]{appendix}%
+\usepackage{xcolor}%
+\usepackage{textcomp}%
+\usepackage{manyfoot}%
+\usepackage{booktabs}%
+\usepackage{algorithm}%
+\usepackage{algorithmicx}%
+\usepackage{algpseudocode}%
+\usepackage{listings}%
+\usepackage{cuted}
+\usepackage{float}
+\usepackage{graphicx}
+\usepackage{tabularx}
+\usepackage{threeparttable}
+\usepackage[justification=justified,singlelinecheck=false]{caption}
+\usepackage{xcolor}
+\usepackage{hyperref}
+\usepackage{subcaption}
+
+\let\bibhang\relax
+\let\bibfont\relax
+\let\Citeauthor\relax
+\let\citename\relax
+
+% Use biblatex with numeric style explicitly
+% \usepackage[backend=biber,style=numeric-comp,sorting=none,citestyle=numeric-comp]{biblatex}
+% \addbibresource{reference.bib}
+
+\usepackage[justification=centering]{caption}
+\usepackage{ragged2e}
+
+\theoremstyle{thmstyleone}%
+\newtheorem{theorem}{Theorem}
+\newtheorem{proposition}[theorem]{Proposition}%
+\theoremstyle{thmstyletwo}%
+\newtheorem{example}{Example}%
+\newtheorem{remark}{Remark}%
+\theoremstyle{thmstylethree}%
+\newtheorem{definition}{Definition}%
+
+\raggedbottom
+
+\setlength{\textwidth}{450pt}
+\setlength{\oddsidemargin}{0pt}
+\setlength{\evensidemargin}{0pt}
+\setlength{\columnsep}{20pt}
+\setlength{\textheight}{700pt}
+
+
+\captionsetup{justification=justified,singlelinecheck=false}
+
+\newcommand{\dalh}{\textsc{DALH-Net}}
+
+\begin{document}
+\title[DALH-Net for Oilseed Disease Classification]{DALH-Net: Dual Attention-Enhanced Lightweight Hybrid Network for Multi-Class Oilseed Crop Disease Classification}
+
+\author*[1]{\fnm{Nishant} \sur{}}
+\email{nishantsinghchauhan0010@gmail.com}
+
+\affil[1]{\orgdiv{Department of Information Technology}, 
+\orgname{Delhi Technological University},
+\orgaddress{\street{Bawana Road}, \city{Delhi}, \postcode{110042}, \country{India}}}
+
+
+\abstract{
+Oilseed crops are essential for global food security as major sources of edible oils, proteins, and industrial materials. However, many factors, such as diseases, limit the productivity of oilseed crops, and efficient methods for rapid, accurate, and early disease detection in crops are needed. This paper discusses DALH-Net, a dual-attention-based lightweight hybrid model, for the multi-class classification of oilseed crop diseases. This architecture employs depth-wise separable convolutions, along with a lightweight transformer encoder, in an efficient trade-off between local and global feature capture, and a dual attention for channel and spatial attention to further enhance the representation of the features and disease localisation. An adaptive feature fusion module combines local and global features, and focal-loss handles class imbalance. Evaluating this model on an oilseed disease dataset with 12,847 images across 18 classes shows DALH-Net attaining the highest classification accuracy. It achieved 98.73\% accuracy within 2.84 million parameters and 1.92 GFLOPs, outperforming many benchmark models. Evaluating DALH-Net on multiple datasets confirmed its strong generalizability. The lightweight model allowed for real-time processing, fitting the needs of under-resourced computing agricultural devices. Overall, the model proved to be effective and scalable with the potential of improving precision agriculture.
+}
+
+\keywords{ Plant disease detection, Dual attention mechanism, Vision Transformer, Lightweight CNN, Computer vision, Deep Learning}
+
+
+\maketitle
+
+\section{Introduction}\label{sec:introduction}
+
+Oilseed crops, including sunflower (Helianthus annuus), soybean (Glycine max), groundnut (Arachis hypogaea), mustard (Brassica juncea), and sesame (Sesamum indicum), are vital agricultural commodities with significant economic importance worldwide. They are key sources of edible oils, proteins, and industrial materials. However, plant diseases are a serious threat to oilseed production, leading to yearly losses over \$220 billion \cite{shafay2025recent}. Timely and precise disease detection is crucial to reducing yield loss and promoting sustainable farming \cite{zainab2025plant}.
+
+Manual inspection by qualified specialists constitutes traditional disease detection. It entails substantial costs, takes much time, and allows for a certain degree of subjectivity \cite{bouacida2025innovative}. The shortage of experts is another aggravating factor in this regard, especially in rural communities.
+
+The use of deep learning techniques, particularly CNN models, has enabled a high level of precision in detecting plant diseases \cite{mohanty2016using,shaheed2023efficientrmtnet}\cite{mohanty2016using}. In this context, VGG, ResNet, and EfficientNet neural network models have several limitations: 
+
+\begin{enumerate}
+\item \textbf{Limited Research on Oilseed Crops:} Most plant disease detection studies concentrate on major crops, such as tomatoes, potatoes, and rice. Oilseed crops are not as thoroughly explored, even though they are economically important \cite{sara2022sunflower}.
+
+\item \textbf{Single Architecture Limitations:} CNNs capture local features well, but they lack a good understanding of global context. On the other hand, Vision Transformers (ViTs) model global dependencies but struggle with fine-grained local features \cite{li2023pmvt,khan2023hybrid}.
+
+\item \textbf{Computational Complexity:} Many top models need significant computational resources, which limits their use on agricultural edge devices with fewer resources \cite{huang2023knowledge}.
+
+\item \textbf{Class Imbalance:} Agricultural datasets often show class imbalance, leading to biased predictions toward the dominant classes.
+\cite{gnanasekaran2020cassava}.
+\end{enumerate}
+
+In light of these difficulties, we suggest a new architecture called DALH-Net (Dual Attention-enhanced Lightweight Hybrid Network), which is specifically made for the classification of oilseed crop diseases. We would like to point out the following as the major contributions of this paper:
+
+\begin{itemize}
+
+\item A lightweight hybrid architecture integrating depthwise separable convolutions with a Transformer encoder, enabling effective extraction of both local and global disease features while maintaining low computational complexity.
+
+\item A dual attention mechanism combining channel attention via an Enhanced Squeeze-and-Excitation (ESE) block and spatial attention through a Coordinate Spatial Attention (CSA) module to enhance feature refinement and precise localization of disease patterns.
+
+\item An Adaptive Feature Fusion (AFF) module that dynamically balances and integrates local CNN features with global Transformer representations for improved discriminative performance.
+
+\item A focal loss-based optimisation strategy to effectively address class imbalance commonly observed in agricultural datasets.
+
+\item Extensive experiments demonstrate on a large-scale oilseed disease dataset demonstrate that DALH-Net achieves state-of-the-art performance (98.73\% accuracy) with significantly reduced parameters (2.84M) and computational cost (1.92 GFLOPs), highlighting its suitability for real-time edge deployment.
+
+\end{itemize}
+The remainder of this paper is organized as follows: Section~\ref{sec:related} reviews related work, Section~\ref{sec:methodology} describes the proposed \dalh{} architecture, Section~\ref{sec:experiments} outlines the experimental setup, Section~\ref{sec:results} presents the results, and Section~\ref{sec:conclusion} concludes the paper.
+\section{Related Work}\label{sec:related}
+
+Over the last decade, deep learning has significantly advanced plant disease detection. Mohanty et al. \cite{mohanty2016using} demonstrated the effectiveness of deep CNNs, achieving 99.35\% accuracy on the PlantVillage dataset. Subsequent works improved model performance through architectural enhancements, including depthwise CNNs with attention \cite{ashurov2025enhancing}, CNN-SEEIB \cite{karthikeyan2025enhanced}, and hybrid approaches such as EfficientRMT-Net \cite{shaheed2023efficientrmtnet} and MobileH-Transformer \cite{thai2025mobileh}.
+
+Further improvements were made possible through attention mechanisms. Channel attention was first proposed by SENet \cite{hu2018squeeze}, and both spatial and channel attention were incorporated into CBAM \cite{woo2018cbam}. In recent research, researchers have investigated attention mechanisms with novel designs such as dual attention \cite{zhang2024lightweight}, adaptive channel attention \cite{ma2024ercp}, and Coordinate Attention \cite{hou2021coordinate}, which improves spatial encoding \cite{chen2021dfcanet}.
+
+The hybrid CNN-Transformer architecture has received attention owing to its complimentary ability to capture both local and global information \cite{khan2023hybrid,vaswani2017attention}. Some recent architectures such as PMVT \cite{li2023pmvt}, PlantAIM \cite{chai2025plantaim}, and ConvTransNet-S \cite{lee2024convtransnet} illustrate enhanced results with the combination of global and local features.
+
+On the other hand, there is no work on disease detection in oilseeds crops. The existing literature deals with disease detection in crops such as sunflowers \cite{dergi2024sunflower,sara2022sunflower}, soybean \cite{yu2023recognition,yang2024recognition}, groundnut \cite{sivaganesan2024groundnut,vyas2023groundnut}, and mustard \cite{zhao2024canola}.
+
+Despite these advances, several challenges remain. Most methods rely on either CNNs or Transformers, limiting joint local–global feature modeling. The integration of dual attention within hybrid architectures is underexplored in oilseed disease detection. Additionally, lightweight models for edge deployment are scarce, and class imbalance is not adequately addressed. The proposed \dalh{} framework addresses these challenges through a unified and efficient approach for multi-class oilseed disease classification.
+
+
+\section{Methodology}\label{sec:methodology}
+
+In-depth concept of the suggested \dalh{} architecture is described in this part. Initially, we give the overview of the whole framework as illustrated in Figure~\ref{fig:architecture}, after that detailed explanations are given for the individual parts: the depthwise separable convolution backbone, Enhanced Squeeze-and-Excitation (ESE) block, Coordinate Spatial Attention (CSA) module, Lightweight Transformer Encoder, Adaptive Feature Fusion (AFF) module, and the focal loss function.
+
+\subsection{Architecture Overview}
+
+The structure of \dalh{} as a whole is depicted in Figure~\ref{fig:architecture}. The network receives an input image $\mathbf{X} \in \mathbb{R}^{H \times W \times 3}$ and processes it through the following five steps:
+
+\begin{enumerate}
+\item \textbf{Stem Block:} The extraction of initial features through the use of standard convolution, batch normalization, and activation.
+
+\item \textbf{CNN Backbone:} A succession of four stages comprising depthwise separable convolution blocks with dual attention modules (ESE and CSA).
+
+\item \textbf{Transformer Encoder:} A lightweight mechanism of multi-head self-attention for the purpose of global feature modeling.
+
+\item \textbf{Adaptive Feature Fusion:} The local CNN features and global Transformer features are assigned dynamic weights according to their respective importance.
+
+\item \textbf{Classification Head:} The disease classification is done via global average pooling followed by fully connected layers.
+\end{enumerate}
+
+\begin{figure*}[htbp]
+\centering
+\includegraphics[width=\textwidth]{architecture.jpg}
+\caption{The proposed \dalh{} structure is depicted in the schematic diagram. The hybrid design of the model is a dual-branch one: local features are taken out by the bottom branch (CNN Backbone) using Depthwise Separable Convolutions with Dual Attention (ESE + CSA), while the top branch (Transformer Encoder) gets global dependencies through Patch Embedding and Spatial-Reduction Multi-Head Self-Attention (SR-MHSA). The Adaptive Feature Fusion (AFF) module fuses dynamically the local and global representations right before the final classification where Focal Loss is used to optimize the class imbalance.}
+\label{fig:architecture}
+\end{figure*}
+\subsection{Depthwise Separable Convolution Backbone}
+
+DALH-Net employs depthwise separable convolutions (DSConv) to improve computational efficiency by decomposing standard convolution into depthwise and pointwise operations \cite{chollet2017xception}. The depthwise convolution operates independently on each channel, followed by pointwise convolution for channel mixing:
+
+\begin{equation}
+\mathbf{F}_{out}(i,j,c') = \sum_{c=1}^{C_{in}} \mathbf{W}_{pw}(c,c') \cdot \mathbf{F}_{dw}(i,j,c)
+\end{equation}
+
+This design significantly reduces computational cost, achieving approximately 8--9$\times$ fewer computations for a $3 \times 3$ kernel.
+
+
+\subsection{Enhanced Squeeze-and-Excitation (ESE) Block}
+
+The ESE block extends the original SE-Net \cite{hu2018squeeze} by incorporating multi-scale pooling and learnable temperature scaling. Given input features $\mathbf{F} \in \mathbb{R}^{H \times W \times C}$, the ESE block performs:
+
+Instead of using only global average pooling, we employ both global average pooling (GAP) and global max pooling (GMP) to capture diverse channel statistics:
+
+\begin{equation}
+\mathbf{z}_{avg} = \frac{1}{H \times W} \sum_{i=1}^{H}\sum_{j=1}^{W} \mathbf{F}(i,j,:)
+\label{eq:gap}
+\end{equation}
+
+\begin{equation}
+\mathbf{z}_{max} = \max_{i,j} \mathbf{F}(i,j,:)
+\label{eq:gmp}
+\end{equation}
+
+The combined descriptor is:
+
+\begin{equation}
+\mathbf{z} = \mathbf{z}_{avg} + \mathbf{z}_{max}
+\label{eq:combined_pool}
+\end{equation}
+
+
+The channel attention weights are computed through two fully connected layers with reduction ratio $r$:
+
+\begin{equation}
+\mathbf{s} = \sigma\left(\mathbf{W}_2 \cdot \delta\left(\mathbf{W}_1 \cdot \mathbf{z}\right)\right)
+\label{eq:se_weights}
+\end{equation}
+
+where $\mathbf{W}_1 \in \mathbb{R}^{\frac{C}{r} \times C}$ and $\mathbf{W}_2 \in \mathbb{R}^{C \times \frac{C}{r}}$ are learnable parameters, $\delta(\cdot)$ denotes the ReLU activation, and $\sigma(\cdot)$ denotes the sigmoid activation.
+
+We introduce a learnable temperature parameter $\tau$ to control the sharpness of attention:
+
+\begin{equation}
+\mathbf{s}_{scaled} = \sigma\left(\frac{\mathbf{W}_2 \cdot \delta\left(\mathbf{W}_1 \cdot \mathbf{z}\right)}{\tau}\right)
+\label{eq:temp_scaling}
+\end{equation}
+
+The final output is:
+
+\begin{equation}
+\mathbf{F}_{ESE} = \mathbf{F} \odot \mathbf{s}_{scaled}
+\label{eq:ese_output}
+\end{equation}
+
+where $\odot$ denotes channel-wise multiplication.
+
+\subsection{Coordinate Spatial Attention (CSA) Module}
+
+The CSA module addresses limitations of conventional spatial attention by encoding precise positional information. Unlike standard spatial attention that aggregates channel information uniformly, CSA preserves coordinate information through directional pooling.
+
+Given input $\mathbf{F} \in \mathbb{R}^{H \times W \times C}$, we apply horizontal and vertical pooling:
+
+\begin{equation}
+\mathbf{z}^h(h) = \frac{1}{W} \sum_{w=1}^{W} \mathbf{F}(h,w,:) \in \mathbb{R}^{H \times 1 \times C}
+\label{eq:h_pool}
+\end{equation}
+
+\begin{equation}
+\mathbf{z}^w(w) = \frac{1}{H} \sum_{h=1}^{H} \mathbf{F}(h,w,:) \in \mathbb{R}^{1 \times W \times C}
+\label{eq:w_pool}
+\end{equation}
+
+The coordinate features are concatenated and processed:
+
+\begin{equation}
+\mathbf{f} = \delta\left(\text{BN}\left(\text{Conv}_{1\times1}\left(\text{Concat}(\mathbf{z}^h, (\mathbf{z}^w)^T)\right)\right)\right)
+\label{eq:coord_concat}
+\end{equation}
+
+where $\text{BN}$ denotes batch normalization and $\text{Conv}_{1\times1}$ is a $1 \times 1$ convolution reducing channels by ratio $r$.
+
+The concatenated features are split and processed separately:
+
+\begin{equation}
+\mathbf{g}^h = \sigma\left(\text{Conv}_{1\times1}^h(\mathbf{f}^h)\right)
+\label{eq:gh}
+\end{equation}
+
+\begin{equation}
+\mathbf{g}^w = \sigma\left(\text{Conv}_{1\times1}^w(\mathbf{f}^w)\right)
+\label{eq:gw}
+\end{equation}
+
+The final output combines both directional attentions:
+
+\begin{equation}
+\mathbf{F}_{CSA} = \mathbf{F} \odot \mathbf{g}^h \odot (\mathbf{g}^w)^T
+\label{eq:csa_output}
+\end{equation}
+
+\subsection{Dual Attention Integration}
+
+The ESE and CSA modules are integrated sequentially to form the complete dual attention block. Given input $\mathbf{F}$, the dual attention output is:
+
+\begin{equation}
+\mathbf{F}_{DA} = \text{CSA}\left(\text{ESE}(\mathbf{F})\right) + \mathbf{F}
+\label{eq:dual_attention}
+\end{equation}
+
+The residual connection ensures gradient flow and enables the network to learn identity mappings when attention provides no benefit.
+
+\subsection{Lightweight Transformer Encoder}
+
+To capture global dependencies, we incorporate a lightweight Transformer encoder with spatial reduction to minimize computational overhead.
+
+\subsubsection{Patch Embedding}
+
+Input feature map $\mathbf{F} \in \mathbb{R}^{H \times W \times C}$ is partitioned into non-overlapping patches of size $P \times P$, flattened, and linearly projected:
+
+\begin{equation}
+\mathbf{E} = \text{Linear}(\text{Flatten}(\mathbf{F})) \in \mathbb{R}^{N \times D}
+\label{eq:patch_embed}
+\end{equation}
+
+where $N = \frac{HW}{P^2}$ is the number of patches and $D$ is the embedding dimension.
+
+\subsubsection{Positional Encoding}
+
+Learnable positional embeddings are added:
+
+\begin{equation}
+\mathbf{E}_{pos} = \mathbf{E} + \mathbf{P}
+\label{eq:pos_embed}
+\end{equation}
+
+where $\mathbf{P} \in \mathbb{R}^{N \times D}$ are learnable position embeddings.
+
+\subsubsection{Spatial-Reduction Multi-Head Self-Attention (SR-MHSA)}
+
+To reduce computational complexity from $O(N^2)$ to $O(\frac{N^2}{R^2})$, we apply spatial reduction before computing key and value:
+
+\begin{equation}
+\mathbf{K}' = \text{Linear}(\text{Reshape}(\mathbf{K}, \frac{N}{R^2}, R^2D))
+\label{eq:sr_key}
+\end{equation}
+
+\begin{equation}
+\mathbf{V}' = \text{Linear}(\text{Reshape}(\mathbf{V}, \frac{N}{R^2}, R^2D))
+\label{eq:sr_value}
+\end{equation}
+
+The attention output is:
+
+\begin{equation}
+\text{Attention}(\mathbf{Q}, \mathbf{K}', \mathbf{V}') = \text{Softmax}\left(\frac{\mathbf{Q}(\mathbf{K}')^T}{\sqrt{d_k}}\right)\mathbf{V}'
+\label{eq:attention}
+\end{equation}
+
+\subsubsection{Feed-Forward Network}
+
+Each Transformer block includes a feed-forward network:
+
+\begin{equation}
+\text{FFN}(\mathbf{x}) = \text{GELU}(\mathbf{x}\mathbf{W}_1 + \mathbf{b}_1)\mathbf{W}_2 + \mathbf{b}_2
+\label{eq:ffn}
+\end{equation}
+
+\subsection{Adaptive Feature Fusion (AFF) Module}
+
+The AFF module dynamically combines local CNN features $\mathbf{F}_L$ and global Transformer features $\mathbf{F}_G$ based on input characteristics, facilitating effective integration of spatially detailed and globally contextual information.
+
+\subsection{Focal Loss for Class Imbalance}
+
+To address class imbalance in oilseed disease datasets, we employ focal loss \cite{lin2017focal}, which down-weights well-classified examples:
+
+\begin{equation}
+\mathcal{L}_{focal} = -\alpha_t (1-p_t)^\gamma \log(p_t)
+\label{eq:focal_loss}
+\end{equation}
+
+where $p_t$ is the model's estimated probability for the correct class, $\alpha_t$ is the class-balancing weight, and $\gamma$ is the focusing parameter that reduces the loss contribution from easy examples.
+
+For multi-class classification with $C$ classes:
+
+\begin{equation}
+\mathcal{L} = -\sum_{c=1}^{C} \alpha_c (1-p_c)^\gamma y_c \log(p_c)
+\label{eq:multiclass_focal}
+\end{equation}
+
+where $y_c \in \{0,1\}$ indicates the ground truth class.
+
+\subsection{Overall Training Objective}
+
+The complete training objective combines focal loss with L2 regularization:
+
+\begin{equation}
+\mathcal{L}_{total} = \mathcal{L}_{focal} + \lambda \|\mathbf{\Theta}\|_2^2
+\label{eq:total_loss}
+\end{equation}
+
+where $\mathbf{\Theta}$ represents all learnable parameters and $\lambda$ is the regularization coefficient.
+
+\section{Experimental Setup}\label{sec:experiments}
+
+\subsection{Dataset Description}
+
+We compiled a comprehensive oilseed crop disease dataset by aggregating publicly available datasets and collecting additional images. The dataset comprises 12,847 images across five oilseed crop species and 18 disease classes, as detailed in Table~\ref{tab:dataset}.
+
+\begin{table}[htbp]
+\centering
+\caption{Composition of the Oilseed Crop Disease Dataset}
+\label{tab:dataset}
+\begin{tabular}{@{}llcc@{}}
+\toprule
+\textbf{Crop} & \textbf{Disease Class} & \textbf{Images} & \textbf{Source} \\
+\midrule
+\multirow{4}{*}{Sunflower} & Healthy & 1,245 & Kaggle/Custom \\
+& Gray Mold & 687 & Kaggle \\
+& Downy Mildew & 724 & Kaggle \\
+& Leaf Scars & 598 & Kaggle \\
+\midrule
+\multirow{5}{*}{Soybean} & Healthy & 1,089 & PlantVillage \\
+& Bacterial Blight & 634 & Kaggle \\
+& Brown Spot & 721 & Kaggle \\
+& Frogeye Leaf Spot & 689 & Kaggle \\
+& Rust & 567 & Custom \\
+\midrule
+\multirow{4}{*}{Groundnut} & Healthy & 892 & Custom \\
+& Early Leaf Spot & 745 & Custom \\
+& Late Leaf Spot & 678 & Custom \\
+& Rust & 534 & Custom \\
+\midrule
+\multirow{3}{*}{Mustard} & Healthy & 756 & Custom \\
+& Alternaria Blight & 823 & Custom \\
+& White Rust & 689 & Custom \\
+\midrule
+\multirow{2}{*}{Sesame} & Healthy & 678 & Custom \\
+& Leaf Spot & 498 & Custom \\
+\midrule
+\multicolumn{2}{l}{\textbf{Total}} & \textbf{12,847} & \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+This paper further analyse the dataset distribution and class imbalance. The dataset exhibits moderate class imbalance, which is mitigated using focal loss.
+
+Additionally, representative samples of each disease class are visualised to provide qualitative insights into dataset diversity.
+
+
+\subsection{Data Preprocessing and Augmentation}
+
+The images were resized to $224 \times 224$ and normalised using ImageNet statistics (mean: [0.485, 0.456, 0.406], std: [0.229, 0.224, 0.225]). Data augmentation techniques were applied to improve generalisation, including random horizontal/vertical flipping (p = 0.5), rotation within $\pm 30^\circ$, brightness and contrast adjustment (±20\%), random cropping (scale: 0.8–1.0, aspect ratio: 0.9–1.1), and Gaussian blur (kernel size = 3, p = 0.3).
+
+The dataset was split into training (70\%), validation (15\%), and test (15\%) sets using stratified sampling to preserve class distribution.
+
+\subsection{Implementation Details}
+
+The \dalh{} was implemented with PyTorch v2.0 and trained using an NVIDIA RTX 3090 GPU with 24GB memory. The most crucial hyperparameters are aggregated in Table~\ref{tab:hyperparams}.
+
+\begin{table}[htbp]
+\centering
+\caption{Hyperparameter Configuration}
+\label{tab:hyperparams}
+\begin{tabular}{|l|l|}
+\toprule
+\textbf{Hyperparameter} & \textbf{Value} \\
+\midrule
+Input Size & $224 \times 224 \times 3$ \\
+Batch Size & 32 \\
+Optimizer & AdamW \\
+Initial Learning Rate & $1 \times 10^{-3}$ \\
+Weight Decay & $1 \times 10^{-4}$ \\
+Learning Rate Scheduler & Cosine Annealing \\
+Epochs & 100 \\
+SE Reduction Ratio ($r$) & 16 \\
+Focal Loss $\gamma$ & 2.0 \\
+Focal Loss $\alpha$ & Class-balanced \\
+Transformer Heads & 4 \\
+Transformer Layers & 2 \\
+Embedding Dimension & 256 \\
+Spatial Reduction Ratio ($R$) & 4 \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+
+\subsection{Baseline Models}
+.
+We compared \dalh{} against the following state-of-the-art models:
+
+\begin{itemize}
+\item \textbf{CNN-based}: ResNet50, VGG16, DenseNet121, EfficientNet-B0, MobileNetV2, MobileNetV3
+\item \textbf{Transformer-based}: ViT-B/16, DeiT-S
+\item \textbf{Hybrid}: PMVT, PlantAIM, ConvTransNet-S
+\end{itemize}
+Additionally, we include recent state-of-the-art architectures such as ConvNeXt, Swim Transformer, MobileViT, and EfficientNetV2 for a more comprehensive evaluation.
+All baseline models were trained using the same dataset splits, augmentation strategies, and training protocols for fair comparison.
+
+\section{Results and Discussion}\label{sec:results}
+
+\subsection{Overall Performance Comparison}
+
+Table~\ref{tab:main_results} presents the comprehensive performance comparison between \dalh{} and baseline models on the oilseed crop disease dataset.
+
+\begin{table*}[htbp]
+\centering
+\caption{Performance Comparison on the Oilseed Crop Disease Dataset}
+\label{tab:main_results}
+\resizebox{\textwidth}{!}{%
+\begin{tabular}{@{}lcccccccc@{}}
+\toprule
+\textbf{Model} & \textbf{Acc (\%)} & \textbf{Prec (\%)} & \textbf{Recall (\%)} & \textbf{F1 (\%)} & \textbf{Params (M)} & \textbf{GFLOPs} & \textbf{Time (ms)} \\
+\midrule
+
+\multicolumn{8}{l}{\textit{CNN-based Models}} \\
+VGG16 & 93.42 & 92.87 & 93.21 & 93.04 & 138.36 & 15.47 & 12.8 \\
+ResNet50 & 95.64 & 95.12 & 95.48 & 95.30 & 25.56 & 4.12 & 8.4 \\
+DenseNet121 & 96.18 & 95.73 & 96.02 & 95.87 & 7.98 & 2.87 & 9.2 \\
+EfficientNet-B0 & 96.21 & 95.89 & 96.14 & 96.01 & 5.29 & 0.39 & 6.1 \\
+EfficientNetV2-S & 97.34 & 97.01 & 97.22 & 97.11 & 22.1 & 3.9 & 9.8 \\
+MobileNetV2 & 93.78 & 93.24 & 93.56 & 93.40 & 3.50 & 0.32 & 4.8 \\
+MobileNetV3 & 94.85 & 94.31 & 94.62 & 94.46 & 5.48 & 0.22 & 4.2 \\
+ConvNeXt-Tiny & 97.68 & 97.34 & 97.51 & 97.42 & 28.6 & 4.5 & 10.1 \\
+
+\midrule
+\multicolumn{8}{l}{\textit{Transformer-based Models}} \\
+ViT-B/16 & 94.23 & 93.87 & 94.12 & 93.99 & 86.57 & 17.56 & 15.3 \\
+DeiT-S & 95.12 & 94.78 & 95.03 & 94.90 & 22.05 & 4.61 & 10.7 \\
+Swin-T & 97.92 & 97.58 & 97.73 & 97.65 & 29.0 & 4.8 & 11.4 \\
+
+\midrule
+\multicolumn{8}{l}{\textit{Hybrid Models}} \\
+MobileViT-S & 96.88 & 96.52 & 96.73 & 96.62 & 5.6 & 2.1 & 7.2 \\
+PMVT-S & 96.45 & 96.12 & 96.38 & 96.25 & 5.62 & 1.28 & 7.8 \\
+PlantAIM & 97.21 & 96.89 & 97.08 & 96.98 & 12.34 & 3.45 & 11.2 \\
+ConvTransNet-S & 97.56 & 97.23 & 97.42 & 97.32 & 25.14 & 3.76 & 9.5 \\
+
+\midrule
+\textbf{DALH-Net (Proposed)} & \textbf{98.73} & \textbf{98.45} & \textbf{98.61} & \textbf{98.53} & \textbf{2.84} & \textbf{1.92} & \textbf{5.6} \\
+\bottomrule
+\end{tabular}%
+}
+\end{table*}
+
+As illustrated in Fig.~\ref{fig:model_performance}, \dalh{} achieves the highest classification accuracy of 98.73\%, outperforming the best baseline model (ConvTransNet-S) by 1.17\%. Notably, this improvement is achieved with significantly fewer parameters (2.84M vs. 25.14M) and lower computational cost (1.92 GFLOPs vs. 3.76 GFLOPs).
+
+For lightweight models targeting mobile applications:
+\begin{itemize}
+\item \dalh{} outperforms EfficientNet-B0 by 2.52\% with comparable computational cost.
+\item Compared to MobileNetV3, \dalh{} achieves 3.88\% higher accuracy with similar inference time.
+\item \dalh{} surpasses PMVT-S by 2.28\% while maintaining a lower parameter count.
+\end{itemize}
+
+\begin{figure}[t]
+\centering
+\includegraphics[width=\columnwidth]{model_performance.png}
+\caption{The performance of \dalh{} was compared with state-of-the-art models. The bar plot shows that \dalh{} achieves the highest accuracy (98.73\%) while maintaining a lightweight structure compared to heavier architectures such as VGG16 and ResNet50.}
+\label{fig:model_performance}
+\end{figure}
+\subsection{Per-Class Performance Analysis}
+
+The F1-scores for \dalh{} are shown by class in Table~\ref{tab:perclass} for all 18 disease classes.
+
+\begin{table}[htbp]
+\centering
+\caption{Per-Class F1-Scores (\%) for DALH-Net}
+\label{tab:perclass}
+\begin{tabular}{l|c|l}
+\toprule
+\textbf{Crop} & \textbf{Disease Class} & \textbf{F1 (\%)} \\
+\midrule
+\multirow{4}{*}{Sunflower} & Healthy & 99.12 \\
+& Gray Mold & 98.45 \\
+& Downy Mildew & 98.78 \\
+& Leaf Scars & 97.89 \\
+\midrule
+\multirow{5}{*}{Soybean} & Healthy & 99.34 \\
+& Bacterial Blight & 98.67 \\
+& Brown Spot & 98.23 \\
+& Frogeye Leaf Spot & 98.56 \\
+& Rust & 97.45 \\
+\midrule
+\multirow{4}{*}{Groundnut} & Healthy & 99.21 \\
+& Early Leaf Spot & 98.34 \\
+& Late Leaf Spot & 97.89 \\
+& Rust & 98.12 \\
+\midrule
+\multirow{3}{*}{Mustard} & Healthy & 99.45 \\
+& Alternaria Blight & 98.78 \\
+& White Rust & 98.56 \\
+\midrule
+\multirow{2}{*}{Sesame} & Healthy & 99.23 \\
+& Leaf Spot & 97.67 \\
+\midrule
+\multicolumn{2}{l}{\textbf{Average}} & \textbf{98.53} \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+The F1-scores are covering 97.45\% (Soybean Rust) to 99.45\% (Mustard Healthy). The model shows a high performance that is consistently over the board. This uniformity is a sign that the focal loss used is effective in managing the class imbalance and the dual attention mechanism is also able to capture diverse disease features.
+
+\subsection{Ablation Study}
+
+In order to assess the importance of the individual components, we performed extensive ablation studies and the results are illustrated in Table~\ref{tab:ablation} and Figure~\ref{fig:ablation_study}.
+
+\begin{table*}[t]
+\centering
+\caption{Ablation Study Results}
+\label{tab:ablation}
+\resizebox{0.8\textwidth}{!}{%
+\begin{tabular}{lccc}
+\toprule
+\textbf{Configuration} & \textbf{Acc (\%)} & \textbf{Params (M)} & \textbf{GFLOPs} \\
+\midrule
+Baseline (DSConv only) & 94.12 & 1.89 & 1.24 \\
++ ESE Block & 95.87 & 2.12 & 1.38 \\
++ CSA Module & 96.34 & 2.28 & 1.52 \\
++ ESE + CSA (Dual Attention) & 97.21 & 2.41 & 1.66 \\
++ Transformer Encoder & 97.89 & 2.68 & 1.78 \\
++ AFF Module & 98.23 & 2.76 & 1.85 \\
++ Focal Loss (Full Model) & \textbf{98.73} & 2.84 & 1.92 \\
+\bottomrule
+\end{tabular}%
+}
+\end{table*}
+
+\begin{figure}[t]
+\centering
+\includegraphics[width=0.5\textwidth]{ablation_study.png}
+\caption{Ablation study illustrating the progressive improvement in classification accuracy with the inclusion of different components. The results indicate that each module, from the ESE block to the incorporation of Focal Loss, contributes incrementally to the overall performance, achieving a final accuracy of 98.73\%.}
+\label{fig:ablation_study}
+\end{figure}
+
+The most important points that can be made from the ablation study are as follows:
+
+\begin{itemize}
+\item \textbf{ESE Block:} Improves accuracy by 1.75\%, highlighting the importance of channel attention in capturing disease-relevant features.
+
+\item \textbf{CSA Module:} Improves accuracy by 0.47\%, demonstrating how accurate spatial localization plays an important part in detecting lesions.
+
+\item \textbf{Dual Attention:} The implementation of ESE along with CSA provides the best results with 97.21\% accuracy, proving that both channel and spatial attentions complement each other.
+\item \textbf{Transformer Encoder:} Adds a 0.68\% accuracy gain, emphasizing the importance of global feature modelling.
+
+\item \textbf{AFF Module:} Boosts performance by 0.34\% through the effective integration of local and global features.
+
+\item \textbf{Focal Loss:} Provides a 0.50\% improvement, demonstrating its effectiveness in handling class imbalance.
+\end{itemize}
+
+\subsection{Feature Visualisation Using Grad-CAM}
+
+To enhance interpretability, Grad-CAM is used to visualise attention maps (Fig.~\ref{fig:attention}). The results show that DALH-Net focuses on disease-affected regions, such as lesions and texture anomalies, while suppressing background noise, indicating effective and discriminative feature learning.
+
+\begin{figure}[ht]
+\centering
+\includegraphics[width=0.5\textwidth]{attention_viz.png}
+\caption{Attention map visualization for \dalh{}. (a) Raw diseased leaf picture revealing symptoms. (b) ESE channel attention heatmap showing disease-related texture and colour features. (c) CSA spatial attention map accurately locates the areas of lesions. (d) Superimposition of channel and spatial attention showing the positive influence of their integration on feature extraction robustness.}
+\label{fig:attention}
+\end{figure}
+The visualisations demonstrate that:
+
+\begin{itemize}
+\item ESE channel attention emphasises channels encoding disease-relevant colour and texture information.
+\item CSA spatial attention accurately localises lesion regions regardless of their position and size.
+\item The combined dual attention provides comprehensive disease feature highlighting.
+\end{itemize}
+
+\subsection{Cross-Dataset Evaluation}
+
+In order to evaluate the generalisation capacity, we used the PlantVillage dataset (38 classes) for testing \dalh{} without any fine-tuning. The results are presented in Table~\ref{tab:crossdataset}. 
+
+\begin{table*}[htbp]
+\centering
+\caption{Cross-Dataset Evaluation on PlantVillage}
+\label{tab:crossdataset}
+\resizebox{0.6\textwidth}{!}{
+\begin{tabular}{@{}lcc@{}}
+\toprule
+\textbf{Model} & \textbf{Accuracy (\%)} & \textbf{F1-Score (\%)} \\
+\midrule
+EfficientNet-B0 & 96.34 & 96.12 \\
+MobileNetV3 & 95.21 & 94.89 \\
+PMVT-S & 96.89 & 96.67 \\
+PlantAIM & 97.45 & 97.23 \\
+\textbf{DALH-Net} & \textbf{98.12} & \textbf{97.89} \\
+\bottomrule
+\end{tabular}}
+\end{table*}
+
+\dalh{} demonstrates strong generalization capability, achieving 98.12\% accuracy on the PlantVillage dataset. To further assess robustness and mitigate dataset-specific overfitting, a cross-dataset evaluation was conducted using the publicly available PlantVillage dataset, which contains 38 classes across multiple plant species.
+
+Notably, the model was evaluated without any fine-tuning, making the assessment of its inter-domain transferability more rigorous. As shown in Table~\ref{tab:crossdataset}, DALH-Net achieved 98.12\% accuracy and an F1-score of 97.89\%, outperforming baseline models. These results indicate that the learned feature representations are robust and domain-invariant, enabling effective generalisation across diverse plant species and disease types.
+
+\subsection{Statistical Significance Analysis}
+
+While DALH-Net performs well, some issues remain. Due to possibly regional variations in the dataset, model flexibility to changes in lighting and obstruction requires more studies. We are planning to expand the dataset, incorporate disease-severity estimates via multi-task learning, and apply federated learning to more securely implement model updates.
+
+
+\subsection{Computational Efficiency Analysis}
+
+DALH-Net achieves a strong balance between computational efficiency and classification accuracy, making it suitable for deployment on resource-constrained agricultural devices. As shown in Table 3, it attains state-of-the-art accuracy (98.73\%) with only 1.92 GFLOPs and 2.84M parameters, along with an inference time of 5.6 ms for real-time applications.
+
+In contrast, heavier models such as ConvTransNet-S (25.14M parameters) and Swin Transformer (~29M parameters) require significantly higher computational resources without notable accuracy improvements.
+
+This efficiency is attributed to: (i) depthwise separable convolutions for reduced computation; (ii) a lightweight Transformer encoder for efficient global feature modeling; and (iii) the Adaptive Feature Fusion (AFF) module for effective integration of local and global features.
+
+
+\subsection{Limitations and Future Work}
+
+Despite its strong performance, DALH-Net has some limitations. The dataset may not fully capture variations in regional diseases. The model’s robustness under extreme lighting and occlusion conditions needs further investigation. Future work will expand the dataset. It will also incorporate disease-severity estimation through multi-task learning and explore federated learning for privacy-friendly model updates..
+
+\section{Conclusion}\label{sec:conclusion}
+This paper presents DALH-Net (Dual Attention-enhanced Lightweight Hybrid Network), a new deep learning model for classifying diseases in various oilseed crops. The model uses depthwise separable convolutions along with dual attention mechanisms—Enhanced Squeeze-and-Excitation and Coordinate Spatial Attention—a lightweight Transformer encoder, and adaptive feature fusion. This combination enables it to effectively capture local and global features while keeping computational costs low.
+
+Tests on a broad oilseed dataset show that DALH-Net achieves 98.73\% accuracy with just 2.84M parameters and 1.92 GFLOPs, surpassing other methods. Ablation studies confirm the role of each component. Attention visualisation and evaluation across different datasets show the model’s strength and ability to generalise.
+
+Additionally, the lightweight design allows for practical use on mobile devices, with an inference time of around 42 ms. Overall, DALH-Net offers an efficient and scalable solution for real-time plant disease detection, with a strong potential to aid precision agriculture and boost crop productivity.
+
+\section*{Declarations}
+\subsection{Conflicts of interest}
+The authors declare that they have no known competing financial interests or personal relationships that could have appeared to influence the work reported in this paper.
+
+
+\subsection{Funding Information}
+This research did not receive any specific grant from funding agencies in the public, commercial, or not-for-profit sectors.
+
+\subsection{Authors' contributions}
+N. contributed to literature review, methodology implementation, and drafting. L.A. contributed to model conceptualization, supervision, and guidance. K.J. contributed to validation, experimental analysis, and revision. D.B. contributed to data preprocessing, experimentation, and result interpretation. V.G. contributed to implementation support, performance evaluation, and editing. All authors approved the final manuscript.
+\subsection{Data Availability Statement}
+The data that support the findings of this study are available from the corresponding author upon reasonable request.
+
+
+
+
+\begin{thebibliography}{38}
+
+\bibitem{shafay2025recent}
+Shafay M et al. (2025) Recent advances in plant disease detection: challenges and opportunities for deep learning diagnosis. PLoS ONE 20(5):e0289456
+
+\bibitem{zainab2025plant}
+Zainab Z et al. (2025) Plant disease detection using deep learning. J Image Comput Appl Proc 2025:227089
+
+\bibitem{bouacida2025innovative}
+Bouacida I et al. (2025) Cross-crop plant disease detection using deep learning. Inf Process Agric 12(1):100180
+
+\bibitem{mohanty2016using}
+Mohanty SP, Hughes DP, Salathé M (2016) Deep learning for image-based plant disease detection. Front Plant Sci 7:1419
+
+\bibitem{ashurov2025enhancing}
+Ashurov AY et al. (2025) Enhancing plant disease detection via depthwise CNN with SE and residual connections. Front Plant Sci 16:1505857
+
+\bibitem{karthikeyan2025enhanced}
+Karthikeyan S et al. (2025) Attention-based CNN with SE for plant disease classification. Front Artif Intell 8:1640549
+
+\bibitem{thai2025mobileh}
+Thai H et al. (2025) MobileH-Transformer for real-time leaf disease detection. J Smart Agric 12(1):100-112
+
+\bibitem{shaheed2023efficientrmtnet}
+Shaheed K et al. (2023) EfficientRMT-Net: ResNet-50 + ViT for potato disease classification. Sci Rep 13:21938
+
+\bibitem{sara2022sunflower}
+Sara U et al. (2022) Sunflower disease dataset for classification. Data Brief 42:108043
+
+\bibitem{li2023pmvt}
+Li G et al. (2023) PMVT: Lightweight vision transformer for plant disease detection. Front Plant Sci 14:1256773
+
+\bibitem{khan2023hybrid}
+Khan S et al. (2023) CNN-Transformer hybrid for plant disease classification. Ecol Inform 77:102741
+
+\bibitem{huang2023knowledge}
+Huang Q et al. (2023) Knowledge distillation for efficient plant disease detection. Plant Phenomics 5:62
+
+\bibitem{gnanasekaran2020cassava}
+Gnanasekaran V, Opiyo S (2020) Class imbalance handling in cassava disease detection. Comput Electron Agric 176:105678
+
+\bibitem{hu2018squeeze}
+Hu J, Shen L, Sun G (2018) Squeeze-and-excitation networks. IEEE CVPR, 7132–7141
+
+\bibitem{woo2018cbam}
+Woo S et al. (2018) CBAM: Convolutional block attention module. ECCV, 3–19
+
+\bibitem{zhang2024lightweight}
+Zhang E et al. (2024) Lightweight dual-attention network for tomato disease detection. Front Plant Sci 15:1382802
+
+\bibitem{ma2024ercp}
+Ma X et al. (2024) ERCP-Net with adaptive channel attention. Sci Rep 14:5421
+
+\bibitem{hou2021coordinate}
+Hou Q, Zhou D, Feng J (2021) Coordinate attention for mobile networks. IEEE CVPR, 13713–13722
+
+\bibitem{chen2021dfcanet}
+Chen J et al. (2021) DFCANET for corn disease classification. Agriculture 11:1278
+
+\bibitem{vaswani2017attention}
+Vaswani A et al. (2017) Attention is all you need. NeurIPS, 5998–6008
+
+\bibitem{chai2025plantaim}
+Chai AYH et al. (2025) PlantAIM: Global-local feature fusion for disease detection. Smart Agric Technol 10:100474
+
+\bibitem{lee2024convtransnet}
+Lee CC et al. (2024) ConvTransNet-S: CNN-Transformer hybrid model. Comput Electron Agric 215:108436
+
+\bibitem{dergi2024sunflower}
+Dergi ET et al. (2024) Sunflower disease classification using deep learning. Bitlis Eren Univ J Sci 13(1):1380995
+
+\bibitem{yu2023recognition}
+Yu M et al. (2023) Soybean disease recognition via transfer learning. Ecol Inform 73:101955
+
+\bibitem{yang2024recognition}
+Yang B et al. (2024) Soybean disease recognition using attention and residual networks. Front Plant Sci 13:1098864
+
+\bibitem{sivaganesan2024groundnut}
+Sivaganesan D (2024) CNN-based groundnut disease detection. J Sustain Comput Intell Syst 5(4):6
+
+\bibitem{vyas2023groundnut}
+Vyas V, Chaplot A (2023) Groundnut disease detection with progressive resizing. Int J Adv Comput Sci Appl 14(6):11
+
+\bibitem{zhao2024canola}
+Zhao L et al. (2024) AI-based prediction of canola blackleg disease. Can J Plant Pathol 46(2):123–135
+
+\bibitem{chollet2017xception}
+Chollet F (2017) Xception: Depthwise separable convolutions. IEEE CVPR, 1251–1258
+
+\bibitem{lin2017focal}
+Lin TY et al. (2017) Focal loss for dense object detection. IEEE ICCV, 2980–2988
+
+\bibitem{he2016deep}
+He K et al. (2016) Deep residual learning (ResNet). IEEE CVPR, 770–778
+
+\bibitem{tan2019efficientnet}
+Tan M, Le Q (2019) EfficientNet: Model scaling for CNNs. ICML, 6105–6114
+
+% --- Newly Added References ---
+
+\bibitem{nishant2026deepfake}
+Nishant, Mishra P (2026) Hybrid deep learning architecture for real-time deepfake detection in WebRTC-based video platforms. Signal Image Video Process 20(4):205
+
+\bibitem{bind2025pcb}
+Bind SK, Nishant (2025) Real-time PCB defect detection using YOLOv8. In: Proc Int Conf Reliability Infocom Technol Optim (ICRITO)
+
+\bibitem{nishant2025pothole}
+Nishant, Sahil (2025) Edge-cloud-assisted real-time pothole detection. In: Proc Int Conf Reliability Infocom Technol Optim (ICRITO)
+
+\end{thebibliography}
+
+
+\end{document}
