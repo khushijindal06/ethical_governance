@@ -1,0 +1,297 @@
+%Version 3.1 December 2024
+% See section 11 of the User Manual for version history
+%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%                                                                 %%
+%% Please do not use \input{...} to include other tex files.       %%
+%% Submit your LaTeX manuscript as one .tex document.              %%
+%%                                                                 %%
+%% All additional figures and files should be attached             %%
+%% separately and not embedded in the \TeX\ document itself.       %%
+%%                                                                 %%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+\documentclass[pdflatex,sn-mathphys-num]{sn-jnl}% Math and Physical Sciences Numbered Reference Style
+
+\usepackage{graphicx}%
+\usepackage{multirow}%
+\usepackage{amsmath,amssymb,amsfonts}%
+\usepackage{amsthm}%
+\usepackage{mathrsfs}%
+\usepackage[title]{appendix}%
+\usepackage{xcolor}%
+\usepackage{textcomp}%
+\usepackage{manyfoot}%
+\usepackage{booktabs}%
+\usepackage{algorithm}%
+\usepackage{algorithmicx}%
+\usepackage{algpseudocode}%
+\usepackage{listings}%
+
+\theoremstyle{thmstyleone}%
+\newtheorem{theorem}{Theorem}%
+\newtheorem{proposition}[theorem]{Proposition}%
+\theoremstyle{thmstyletwo}%
+\newtheorem{example}{Example}%
+\newtheorem{remark}{Remark}%
+\theoremstyle{thmstylethree}%
+\newtheorem{definition}{Definition}%
+
+\raggedbottom
+
+\begin{document}
+
+\title[DenseNet Variants for Chest X-Ray Classification]{Transfer Learning with DenseNet Variants for Three-Class Chest X-Ray Classification of COVID-19, Pneumonia, and Normal Cases: A Comparative Study}
+
+%% TODO: add author and affiliation blocks required by the journal, e.g.
+%% \author*[1]{\fnm{First} \sur{Last}}\email{...}
+%% \affil*[1]{\orgdiv{...}, \orgname{...}, \orgaddress{\city{Delhi}, \country{India}}}
+
+\abstract{Rapid and reliable differentiation of COVID-19 from other pneumonias remains important for triage, particularly where reverse transcription polymerase chain reaction (RT-PCR) testing is slow, costly, or unavailable. Chest X-ray (CXR) imaging is inexpensive and widely accessible, but COVID-19 and pneumonia share overlapping radiographic features. This study compares three DenseNet architectures (DenseNet121, DenseNet169, and DenseNet201) for three-class CXR classification (COVID-19, Normal, Pneumonia) using transfer learning with frozen ImageNet backbones on the publicly available Chest X-ray COVID-19 Pneumonia dataset (6,432 images). All three models reached approximately 96\% test accuracy. DenseNet169 provided the best overall balance, with 97\% macro precision, 96\% recall, 96\% F1-score, and the lowest loss, while training fewer than 5,000 parameters. DenseNet201 showed lower COVID-19 sensitivity (92.2\%) and signs of overfitting, indicating that additional depth did not improve performance on this task. These results suggest that a single, lightweight transfer-learned DenseNet169 model is a practical candidate for CXR-based decision support in resource-limited settings, subject to external and prospective validation.}
+
+\keywords{COVID-19, Pneumonia, Chest X-ray, DenseNet, Transfer learning, Medical image classification}
+
+\maketitle
+
+\section{Introduction}
+\label{sec:intro}
+
+Accurate and timely diagnosis is essential to reduce both missed disease and unnecessary treatment. Deep learning, and convolutional neural networks (CNNs) in particular, has substantially improved automated analysis of radiological images by learning hierarchical features directly from data without manual feature engineering \cite{Bakator2018}. The COVID-19 outbreak, declared a pandemic in March 2020 \cite{WHO2020}, placed enormous pressure on health systems worldwide \cite{Huang2020}. RT-PCR, the reference diagnostic test, is highly specific, but its clinical sensitivity varies with specimen type and timing, and its turnaround time and availability are limited in many settings \cite{Wang2020,Lawrence2022}. This has motivated image-based alternatives for rapid screening, especially CXR analysis.
+
+Pneumonia is a common respiratory infection with significant mortality, particularly among children and older adults \cite{Torres2021}. Its clinical and radiographic presentation overlaps considerably with COVID-19, making differential diagnosis difficult. CXR is non-invasive, inexpensive, suitable for mass screening, and the first-line modality for many thoracic pathologies \cite{Wang2017}, which makes it an attractive input for automated multi-class diagnosis. CNN variants such as VGGNet, ResNet, Xception, and DenseNet have reported accuracies above 90\% for COVID-19 and pneumonia detection from radiographs \cite{Khan2022b}.
+
+DenseNet \cite{Huang2017} connects every layer to all subsequent layers within a dense block, encouraging feature reuse and parameter efficiency, properties that are attractive for small medical datasets. However, the effect of DenseNet depth on three-class COVID-19/pneumonia/normal classification has not been systematically compared under identical conditions. The contributions of this study are:
+\begin{itemize}
+\item a controlled comparison of DenseNet121, DenseNet169, and DenseNet201 under an identical transfer learning protocol for three-class CXR classification;
+\item a class-wise error analysis of each model, with emphasis on COVID-19 sensitivity and false positives; and
+\item evidence that intermediate depth (DenseNet169) offers the best trade-off between diagnostic performance, convergence behaviour, and computational cost.
+\end{itemize}
+
+\section{Related Work}
+\label{sec:relwork}
+
+Numerous deep learning approaches have been proposed for COVID-19 and pneumonia detection from radiological images. Khan et al. \cite{Khan2020} proposed CoroNet, a deep CNN that achieved 95\% accuracy for three-class COVID-19, pneumonia, and normal classification. Ouchicha et al. \cite{Ouchicha2021} introduced CVDNet, a deep convolutional network for COVID-19 diagnosis from CXR. Khan et al. \cite{Khan2022a} developed STM-RENet, a split-transform-merge network whose channel-boosted variant outperformed baseline models across multiple datasets, and in a separate study \cite{Khan2022b} compared NasNetMobile, EfficientNetB1, and MobileNetV2, finding EfficientNetB1 most effective for distinguishing COVID-19 from viral pneumonia.
+
+Several works combine segmentation and classification. Chakraborty et al. \cite{Chakraborty2021} used FC-DenseNet103 for lung segmentation followed by ResNet18 classification, reporting high accuracy and sensitivity on Kaggle data. Xu et al. \cite{Xu2021} proposed MANet, a two-stage mask-attention network for COVID-19, tuberculosis, pneumonia, and normal classes, in which ResNet50-based configurations performed best. Other studies have explored ensembles and hybrid pipelines: Narin et al. \cite{Narin2021} evaluated ResNet and InceptionV3 variants for coronavirus pneumonia detection; Turkoglu \cite{Turkoglu2021} combined AlexNet features, Relief-based feature selection, and support vector machines; and Nishio et al. \cite{Nishio2020} improved a VGG16 classifier using random image cropping and patching (RICAP) augmentation.
+
+Although binary classification results are strong, three-class problems remain challenging because performance must be balanced across classes with markedly different sample sizes. Moreover, the impact of network depth within a single architecture family has received little attention. This study addresses this gap for the DenseNet family.
+
+\section{Materials and Methods}
+\label{sec:matmeth}
+
+\subsection{Dataset}
+\label{subsec:dataset}
+
+We used the publicly available Chest X-ray COVID-19 Pneumonia dataset from Kaggle, comprising 6,432 radiographs in three classes. The dataset is imbalanced: Pneumonia is the majority class (66.45\%) and COVID-19 the minority class (8.95\%). A stratified 80/20 split produced 5,144 training and 1,288 test images (Table~\ref{tab:dataset_dist}).
+
+\begin{table}[htbp]
+\centering
+\caption{Distribution of chest X-ray images across classes and partitions.}
+\label{tab:dataset_dist}
+\begin{tabular}{l c c c c}
+\toprule
+\textbf{Class} & \textbf{Training (80\%)} & \textbf{Testing (20\%)} & \textbf{Total} & \textbf{Share} \\
+\midrule
+COVID-19 & 460 & 116 & 576 & 8.95\% \\
+Normal & 1266 & 317 & 1583 & 24.60\% \\
+Pneumonia & 3418 & 855 & 4273 & 66.45\% \\
+\midrule
+\textbf{Total} & 5144 & 1288 & 6432 & 100.00\% \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\subsection{Preprocessing and Augmentation}
+\label{subsec:preprocessing}
+
+All images were resized to $224 \times 224 \times 3$ to match the input size of ImageNet-pretrained models, and pixel intensities were standardised as
+\begin{equation}
+x_{\text{norm}} = \frac{x - \mu}{\sigma},
+\end{equation}
+where $\mu$ and $\sigma$ are the ImageNet channel mean and standard deviation. During training, images were augmented with random rotation (up to $20^\circ$), translation (up to 10\% of image dimensions), and horizontal flipping ($p = 0.5$) to improve generalisation and reduce overfitting. Labels were one-hot encoded, images were loaded from class-labelled directories, and the training set was shuffled at every epoch and processed in mini-batches of $B = 32$.
+
+\subsection{Model Architecture and Transfer Learning}
+\label{subsec:architecture}
+
+The overall pipeline is shown in Figure~\ref{fig:architecture}. Each DenseNet \cite{Huang2017} consists of an initial convolution and pooling stage followed by four dense blocks separated by transition layers. Within a dense block, the $\ell$-th layer receives the concatenated feature maps of all preceding layers:
+\begin{equation}
+x_{\ell} = H_{\ell}\left([x_0, x_1, \ldots, x_{\ell-1}]\right),
+\end{equation}
+where $H_{\ell}(\cdot)$ is a composite of batch normalisation, ReLU, and convolution. Transition layers reduce feature-map size through $1 \times 1$ convolution and $2 \times 2$ average pooling. The three variants differ only in the number of layers per dense block, and therefore in depth and final feature dimension (Table~\ref{tab:models}).
+
+\begin{figure}[htbp]
+\centering
+\includegraphics[width=0.95\textwidth]{pipeline_model.png}
+\caption{Overview of the DenseNet-based classification pipeline: preprocessing of $224\times224\times3$ CXR images, a frozen ImageNet-pretrained DenseNet backbone (four dense blocks with transition layers), global average pooling, and a trainable softmax classifier over the COVID-19, Normal, and Pneumonia classes.}
+\label{fig:architecture}
+\end{figure}
+
+We adopted a feature-extraction transfer learning strategy: the pretrained backbone $f_{\text{backbone}}$ was frozen, and only the classification head $f_{\text{classifier}}$ was trained,
+\begin{equation}
+\mathcal{L} = \mathcal{L}_{\text{CCE}}\big(f_{\text{classifier}}(f_{\text{backbone}}^{\text{fixed}}(x)),\, y\big).
+\end{equation}
+The final feature maps are reduced by global average pooling (GAP) to a $d$-dimensional vector, followed by a dense layer with softmax output
+\begin{equation}
+p_i = \frac{\exp(z_i)}{\sum_{j=1}^{3} \exp(z_j)}, \quad i \in \{1, 2, 3\},
+\end{equation}
+trained with categorical cross-entropy
+\begin{equation}
+\mathcal{L}_{\text{CCE}} = -\sum_{i=1}^{3} y_i \log(p_i).
+\end{equation}
+Consequently, the number of trainable parameters is $3d + 3$, i.e.\ less than 0.05\% of each model (Table~\ref{tab:models}). All models were optimised with Adam at an initial learning rate of $\alpha = 0.001$ under identical settings.
+
+\begin{table}[htbp]
+\centering
+\caption{Configuration of the evaluated DenseNet variants with frozen backbones.}
+\label{tab:models}
+\begin{tabular}{l c c c c}
+\toprule
+\textbf{Model} & \textbf{GAP dim.\ ($d$)} & \textbf{Total params} & \textbf{Trainable} & \textbf{Trainable (\%)} \\
+\midrule
+DenseNet121 & 1024 & 7,040,579 & 3,075 & 0.044 \\
+DenseNet169 & 1664 & 12,647,875 & 4,995 & 0.039 \\
+DenseNet201 & 1920 & 18,327,747 & 5,763 & 0.031 \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\subsection{Evaluation Metrics}
+\label{subsec:metrics}
+
+Performance on the held-out test set was assessed using accuracy, macro-averaged precision, recall (sensitivity), and F1-score, together with per-class confusion matrices. Per-class sensitivity is reported for clinical interpretability, with particular attention to COVID-19 false negatives and false positives.
+
+\section{Results}
+\label{sec:results}
+
+\subsection{Class-wise Performance}
+\label{subsec:classwise}
+
+Figure~\ref{fig:confusion} presents the confusion matrices of the three models and Table~\ref{tab:classwise} summarises per-class sensitivity.
+
+\textbf{DenseNet121} correctly identified 112 of 116 COVID-19 cases (96.6\%); the four missed cases were predicted as pneumonia. It classified 297 of 317 normal images correctly (93.7\%), with 19 predicted as pneumonia and one as COVID-19, and 831 of 855 pneumonia images (97.2\%), with the remaining 24 predicted as normal.
+
+\textbf{DenseNet169} also detected 112 of 116 COVID-19 cases (96.6\%) and produced only two false COVID-19 predictions among non-COVID images. It correctly classified 296 of 317 normal images (93.4\%), with most errors predicted as pneumonia, and 832 of 855 pneumonia images (97.3\%).
+
+\textbf{DenseNet201} showed the weakest COVID-19 performance, detecting 107 of 116 cases (92.2\%), with two missed cases predicted as normal and seven as pneumonia. Normal sensitivity was also lowest (291 of 317; 91.8\%), with 26 normal images predicted as pneumonia, whereas pneumonia sensitivity was highest (837 of 855; 97.9\%). This pattern indicates a bias towards the majority pneumonia class.
+
+\begin{figure}[htbp]
+\centering
+\includegraphics[width=0.32\textwidth]{confusion_matrix_densenet121.png}\hfill
+\includegraphics[width=0.32\textwidth]{confusion_matrix_densenet169.png}\hfill
+\includegraphics[width=0.32\textwidth]{confusion_matrix_densenet201.png}
+\caption{Confusion matrices on the test set for (left) DenseNet121, (centre) DenseNet169, and (right) DenseNet201. Diagonal entries denote correct classifications.}
+\label{fig:confusion}
+\end{figure}
+
+\begin{table}[htbp]
+\centering
+\caption{Per-class sensitivity (\%) on the test set.}
+\label{tab:classwise}
+\begin{tabular}{l c c c}
+\toprule
+\textbf{Model} & \textbf{COVID-19} & \textbf{Normal} & \textbf{Pneumonia} \\
+\midrule
+DenseNet121 & 96.6 & 93.7 & 97.2 \\
+DenseNet169 & 96.6 & 93.4 & 97.3 \\
+DenseNet201 & 92.2 & 91.8 & 97.9 \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\subsection{Training Dynamics}
+\label{subsec:training}
+
+Training curves are shown in Figure~\ref{fig:training}. DenseNet121 and DenseNet169 converged rapidly within the first 5--10 epochs and stabilised near 96\% accuracy, with training and validation curves remaining close and losses decreasing monotonically without oscillation, indicating minimal overfitting. DenseNet169 reached the lowest final loss. DenseNet201 reached a similar accuracy level, but its training loss continued to decrease in later epochs while validation loss plateaued, an early indicator of overfitting.
+
+\begin{figure}[htbp]
+\centering
+\includegraphics[width=0.8\textwidth]{accuracy_densenet121.png}\\[2pt]
+\includegraphics[width=0.8\textwidth]{accuracy_densenet169.png}\\[2pt]
+\includegraphics[width=0.8\textwidth]{DenseNet201 .png}
+\caption{Training and validation accuracy (left) and loss (right) for DenseNet121 (top), DenseNet169 (middle), and DenseNet201 (bottom).}
+\label{fig:training}
+\end{figure}
+
+\subsection{Overall Comparison}
+\label{subsec:comparative}
+
+Table~\ref{tab:performance_comparison} summarises overall performance. All three variants achieved approximately 96\% accuracy. DenseNet169 obtained the best combination of precision (97\%), recall (96\%), and F1-score (96\%) together with the lowest loss and minimal overfitting. DenseNet121 performed almost identically but with slightly lower precision and higher loss, while DenseNet201 had the lowest recall (94\%) and F1-score (95\%).
+
+\begin{table}[htbp]
+\centering
+\caption{Overall test performance of the DenseNet variants (macro-averaged precision, recall, and F1-score).}
+\label{tab:performance_comparison}
+\begin{tabular}{l c c c c c c}
+\toprule
+\textbf{Model} & \textbf{Accuracy} & \textbf{Precision} & \textbf{Recall} & \textbf{F1-score} & \textbf{Loss} & \textbf{Overfitting} \\
+\midrule
+DenseNet121 & 96\% & 96\% & 96\% & 96\% & Low & Minimal \\
+DenseNet169 & 96\% & 97\% & 96\% & 96\% & Very low & Minimal \\
+DenseNet201 & 96\% & 97\% & 94\% & 95\% & Low & Emerging \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\subsection{Comparison with Previous Studies}
+\label{subsec:literature}
+
+Table~\ref{tab:comparison_literature} places our results in the context of published CXR classification studies. Because these studies differ in datasets, class definitions, and evaluation protocols, the comparison is indicative rather than direct. Rahman et al. \cite{Rahman2020} reported higher accuracy (99\%) by evaluating several deep CNNs, whereas our approach attains 96\% with a single model and fewer than 5,000 trainable parameters. Our results are comparable to those of Zhang et al. \cite{Zhang2021} and Mahajan et al. \cite{Mahajan2022} and exceed those reported by Manickam et al. \cite{Manickam2021}, supporting the suitability of lightweight transfer learning for resource-limited deployment.
+
+\begin{table}[htbp]
+\caption{Comparison with previous deep learning studies on chest X-ray classification. All values in \%.}
+\label{tab:comparison_literature}
+\footnotesize
+\begin{tabular}{@{}llp{3.6cm}cccc@{}}
+\toprule
+\textbf{Authors} & \textbf{Year} & \textbf{Model} & \textbf{Acc.} & \textbf{Prec.} & \textbf{Rec.} & \textbf{F1} \\
+\midrule
+Varshni et al. \cite{Varshni2019} & 2019 & DenseNet169 + SVM & 80.2\textsuperscript{a} & -- & -- & -- \\
+Rahman et al. \cite{Rahman2020} & 2020 & AlexNet, SqueezeNet, ResNet18, DenseNet201 & 99.0 & 96.0 & 93.2 & -- \\
+Zhang et al. \cite{Zhang2021} & 2021 & VGG-based CNN & 96.4 & 96.7 & 93.2 & 94.8 \\
+Kundu et al. \cite{Kundu2021} & 2021 & GoogLeNet, ResNet18, DenseNet121 & -- & 86.9 & -- & -- \\
+Manickam et al. \cite{Manickam2021} & 2021 & ResNet50 & 93.1 & 89.0 & 92.8 & 90.7 \\
+Arifin et al. \cite{Arifin2021} & 2021 & MobileNet-Y1/Y2 SSD & 94.0 & -- & -- & -- \\
+Mahajan et al. \cite{Mahajan2022} & 2022 & DenseNet201, SSD & -- & 93.0 & 95.0 & 94.0 \\
+Usui et al. \cite{Usui2023} & 2023 & Semantic segmentation & 92.0 & -- & -- & -- \\
+\midrule
+\textbf{This study} & \textbf{2026} & \textbf{DenseNet169} & \textbf{96} & \textbf{97} & \textbf{96} & \textbf{96} \\
+\bottomrule
+\multicolumn{7}{@{}l@{}}{\scriptsize\textsuperscript{a}AUC rather than accuracy.}
+\end{tabular}
+\end{table}
+
+\section{Discussion}
+\label{sec:discussion}
+
+The intermediate-depth DenseNet169 provided the best overall balance, while the deepest variant, DenseNet201, did not improve performance. With frozen backbones and a training set of only 5,144 images, the additional depth of DenseNet201 yielded higher-dimensional features that the linear classifier appeared to fit towards the majority pneumonia class, reducing COVID-19 and normal sensitivity and producing a divergence between training and validation loss. DenseNet121 performed nearly as well as DenseNet169, indicating that, on this dataset, moderate depth is sufficient and that the choice among the shallower variants is not critical.
+
+From a clinical perspective, DenseNet169's precision of 97\% limits false-positive results that would trigger unnecessary confirmatory testing, and its 96\% recall limits missed cases. Only two non-COVID images were predicted as COVID-19, which would reduce redundant RT-PCR testing in a triage workflow. The most frequent error for all models was confusion between normal and pneumonia images, which is consistent with subtle or early pneumonic changes and with the class imbalance of the dataset. Notably, COVID-19 sensitivity remained high despite this class contributing only 460 training images.
+
+Transfer learning was central to these results: more than 99.96\% of DenseNet169's parameters were kept frozen, and only 4,995 parameters were trained. This reduces training data requirements, training time, and hardware demands, and enables deployment on standard clinical computing infrastructure without specialised accelerators.
+
+This study has several limitations. First, COVID-19 images form only 8.95\% of the dataset, which may limit generalisation to the full spectrum of COVID-19 presentations. Second, evaluation was performed on a single public dataset aggregated from multiple sources; external validation across scanners, institutions, and populations is required, as dataset-specific artefacts may inflate performance. Third, only feature-extraction transfer learning was evaluated; fine-tuning deeper layers, class-balancing strategies, and comparison with non-DenseNet architectures may further improve performance. Finally, the models do not yet provide visual explanations, and their agreement with radiologists has not been assessed. Future work will incorporate saliency methods such as Grad-CAM and prospective comparison with radiologist interpretations.
+
+\section{Conclusion}
+\label{sec:conclusion}
+
+This study compared DenseNet121, DenseNet169, and DenseNet201 for three-class chest X-ray classification of COVID-19, normal, and pneumonia cases using transfer learning with frozen ImageNet backbones. All models reached approximately 96\% accuracy, demonstrating the effectiveness of transfer learning on a moderately sized dataset of 6,432 images. DenseNet169 offered the best trade-off between accuracy, precision (97\%), recall (96\%), convergence stability, and computational cost, whereas greater depth (DenseNet201) reduced minority-class sensitivity and introduced signs of overfitting. DenseNet169 is therefore a promising candidate for CXR-based decision support in resource-constrained settings. Future work will focus on external multi-centre validation, explainability, and prospective clinical evaluation.
+
+\backmatter
+
+\bmhead{Acknowledgements}
+The authors acknowledge the Kaggle community for providing access to the Chest X-ray COVID-19 Pneumonia dataset. Computational resources were provided by GGSIPU, Delhi, India.
+
+\section*{Declarations}
+
+\bmhead{Author contributions}
+K.J. conceived the study, conducted the experiments, implemented the models, prepared the figures and tables, and drafted the manuscript. S.C. supervised the research, reviewed the experimental design, and critically revised the manuscript. All authors reviewed and approved the final manuscript.
+
+\bmhead{Conflict of interest}
+The authors declare no competing interests.
+
+\bmhead{Data availability}
+The Chest X-ray COVID-19 Pneumonia dataset is publicly available from Kaggle (\url{https://www.kaggle.com/datasets/prashant268/chest-xray-covid19-pneumonia}). Code is available from the corresponding author upon reasonable request.
+
+\bibliography{references}
+
+\end{document}
