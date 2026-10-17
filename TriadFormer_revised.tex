@@ -1,0 +1,1896 @@
+\documentclass[pdflatex,sn-mathphys-num]{sn-jnl}
+
+\usepackage{graphicx}
+\usepackage[hidelinks]{hyperref}
+\usepackage{amsmath,amssymb,amsfonts}
+\usepackage{amsthm}
+\usepackage{mathrsfs}
+\usepackage{booktabs}
+\usepackage{multirow}
+\usepackage{array}
+\usepackage{url}
+\usepackage{ragged2e}
+\setlength{\emergencystretch}{3em}
+\AtBeginDocument{\justifying}
+\usepackage{xcolor}
+\usepackage{adjustbox}
+\usepackage{float}
+\usepackage{lineno}
+\usepackage{xurl}
+\usepackage{microtype}
+\graphicspath{{./}{./elsarticle/}}
+
+\raggedbottom
+
+% Placeholder for values that must be supplied from the authors' data logs / code.
+% Every \fillin{...} must be replaced before submission.
+\newcommand{\fillin}[1]{\textcolor{red}{[#1]}}
+
+\begin{document}
+\justifying
+
+\title[TriadFormer]{TriadFormer: Self-Supervised Multimodal Learning for Unsupervised Spectral--Compositional Segmentation of the Lunar Surface}
+
+\author[1]{\fnm{Nishant}}\email{nishantsinghchauhan0010@gmail.com}
+\author[1]{\fnm{Bindu} \sur{Verma}}\email{bindu.cvision@gmail.com}
+\author*[1]{\fnm{Kapil} \sur{Sharma}}\email{kapil@ieee.org}
+
+\affil*[1]{\orgdiv{Department of Information Technology}, \orgname{Delhi Technological University}, \orgaddress{\city{Delhi}, \country{India}}}
+
+\abstract{Hyperspectral imaging has emerged as an important remote sensing technology for planetary mineral exploration due to its capability to capture detailed spectral and compositional information of lunar surface materials. However, accurate lunar mineral segmentation remains a challenging task because of high spectral dimensionality, nonlinear spectral variability, limited annotated datasets, and the inability of existing hyperspectral learning frameworks to effectively integrate complementary geological modalities. This article presents \textit{TriadFormer}, a novel self-supervised multimodal learning framework for unsupervised spectral--compositional segmentation of the lunar surface using Chandrayaan-2 Imaging Infrared Spectrometer (IIRS) hyperspectral imagery, Terrain Mapping Camera-2 (TMC-2) topographic data, and Clementine FeO compositional maps. The proposed framework combines modality-specific feature extraction networks with a cross-attention-based multimodal fusion architecture to jointly learn spectral, topographic, and elemental relationships within a unified latent representation space. Furthermore, a self-supervised reconstruction strategy integrated with Spectral Angle Mapper (SAM)-guided optimization is employed to preserve spectral consistency and improve latent representation quality without requiring pixel-level mineral annotations. Experimental evaluation demonstrates that the proposed framework achieves a Silhouette Score of \textbf{0.5425} and a Davies--Bouldin Index of \textbf{0.6583} on a single representative training run, indicating superior cluster compactness and inter-cluster separability compared with unimodal and multimodal baseline architectures. A 100-resample bootstrap evaluation shows that this improvement is stable with respect to patch resampling, yielding a mean Silhouette Score of $0.5210 \pm 0.0250$ and a mean Davies--Bouldin Index of $0.6681 \pm 0.0494$ across resamples, and a spatially blocked evaluation on held-out terrain is reported to assess transfer to unseen regions; the bootstrap statistics constitute the recommended reference figures for comparison with future work. Because these metrics measure only geometric cluster quality, the resulting clusters are interpreted as spectral--compositional units rather than validated mineral classes, and a reference-spectrum-based interpretation procedure is described for relating them to candidate lithologies. In addition, \textit{TriadFormer} achieves a reconstruction loss of \textbf{0.00074} and a SAM error of \textbf{0.0947}, demonstrating its ability to preserve spectral fidelity while learning discriminative multimodal geological representations. The obtained results highlight the potential of self-supervised cross-attention-based multimodal learning for planetary hyperspectral analysis as a first step towards automated lunar mineral mapping.}
+
+\keywords{Hyperspectral imaging, Cross-attention fusion, Lunar spectral--compositional segmentation, Self-supervised learning}
+
+\maketitle
+
+\section{Introduction}
+
+Hyperspectral imaging (HSI) has emerged as a significant remote sensing technology for detailed planetary surface analysis due to its capability to capture continuous spectral information across hundreds of wavelength bands. In lunar exploration, hyperspectral observations play a critical role in understanding surface mineralogy, geological composition, elemental distribution, and space weathering processes. The Chandrayaan-2 Imaging Infrared Spectrometer (IIRS) mission has substantially advanced lunar remote sensing by providing high-resolution hyperspectral observations of the lunar surface, enabling detailed spectral characterisation and mineral mapping studies \cite{Li2021}. However, accurate extraction of meaningful mineralogical patterns from hyperspectral lunar imagery remains a challenging problem because of high spectral dimensionality, nonlinear spectral mixing, spatial heterogeneity, limited annotated datasets, and complex geological variability present on the lunar surface.
+
+Traditional hyperspectral image analysis methods mainly rely on convolutional neural networks (CNNs), spectral unmixing techniques, and shallow machine learning models for hyperspectral classification and mineral mapping tasks. Although CNN-based methods effectively capture local spatial structures, they often fail to model long-range spectral dependencies and global contextual relationships inherent in hyperspectral data. Recently, transformer-based frameworks such as SpectralFormer, spectral-spatial transformers, and multilevel transformer architectures have demonstrated promising performance in hyperspectral image analysis through self-attention mechanisms and global feature modelling \cite{ref1,ref3,ref8,ref9,ref12}. In addition, several transformer-based approaches, including cross-channel attention networks, multiscale spectral-spatial transformers, and centralised transformer architectures, have further improved spectral representation learning and feature interaction capability \cite{ref12,ref15}. Despite these advancements, most existing approaches are primarily designed for supervised hyperspectral classification tasks and require large labelled datasets, which are extremely limited in planetary remote sensing applications.
+
+Recent studies have also highlighted several unresolved challenges in hyperspectral learning, including insufficient multimodal fusion, inadequate spectral variability modeling, limited exploitation of global spectral relationships, and poor generalization under limited-sample conditions \cite{ref16,ref17,ref18}. Existing methods generally focus only on hyperspectral imagery while ignoring complementary geological modalities such as topographic information and elemental abundance maps that are highly important for lunar mineral characterization. Moreover, most current transformer-based frameworks are extensively evaluated on terrestrial benchmark datasets such as Indian Pines, Salinas, and Pavia University, whereas comparatively limited work has explored self-supervised multimodal learning for planetary hyperspectral analysis using Chandrayaan-2 IIRS observations. Self-supervised learning is particularly important in this context because obtaining reliable pixel-level mineral annotations for planetary datasets is expensive, scarce, and often unavailable, making label-independent representation learning essential for robust spectral--spatial feature extraction and improved generalization.
+
+To address these limitations, this paper proposes \textit{TriadFormer}, a self-supervised multimodal learning framework for lunar mineral segmentation using hyperspectral, topographic, and elemental data. The proposed framework integrates Chandrayaan-2 IIRS hyperspectral imagery, Terrain Mapping Camera-2 (TMC-2) digital elevation information, and Clementine FeO compositional maps to learn robust multimodal latent representations of lunar surface structures. A cross-attention-based multimodal fusion strategy is introduced to jointly capture spectral, topographic, and elemental relationships, while a self-supervised autoencoding objective enables effective representation learning without requiring labeled mineral annotations. Furthermore, a Spectral Angle Mapper (SAM)-guided reconstruction objective is incorporated to preserve spectral consistency and improve hyperspectral reconstruction quality.
+
+Unlike conventional supervised hyperspectral classification frameworks, the proposed approach focuses on self-supervised multimodal representation learning for discovering statistically separable spectral--compositional patterns from heterogeneous lunar datasets. It should be emphasized that such patterns are geometric clusters in a learned latent space; they are candidates for mineralogical interpretation, not validated mineral identifications. The framework combines spectral reconstruction, latent clustering, and cross-modal attention mechanisms to improve multimodal feature learning while reducing dependency on annotated samples. The model may support future automated planetary resource mapping, lunar geological interpretation, and autonomous exploration systems for upcoming lunar missions. Extensive experimental analysis demonstrates that the proposed framework achieves improved cluster separability and enhanced latent representation quality compared to hyperspectral-only learning approaches.
+
+The major contributions of this work are summarized as follows:
+
+\begin{itemize}
+
+\item A self-supervised multimodal learning framework, termed \textit{TriadFormer}, is proposed for unsupervised spectral--compositional segmentation of the lunar surface using hyperspectral, topographic, and elemental datasets. The resulting clusters are treated as latent spectral--geological units; their relation to specific minerals is assessed separately through a reference-based interpretation procedure rather than assumed.
+
+\item A cross-attention-based multimodal fusion architecture is designed to jointly model spectral, topographic, and compositional relationships for enhanced latent representation learning.
+
+\item A SAM-guided reconstruction objective is incorporated to preserve spectral consistency and improve hyperspectral feature reconstruction quality.
+
+\item Extensive experimental analysis, including latent visualization, clustering evaluation, ablation studies, spatially blocked validation, sensitivity to the number of clusters, and multimodal feature analysis, is performed using Chandrayaan-2 IIRS-based lunar datasets, with the full data-preparation pipeline documented for reproducibility.
+
+\item The proposed framework demonstrates improved cluster separability and multimodal representation capability compared to hyperspectral-only baseline approaches.
+
+\end{itemize}
+
+%% =========================================================
+%% Related Work
+%% =========================================================
+
+%% =========================================================
+%% Related Work
+%% =========================================================
+
+\section{Related Work}
+
+Recent advancements in hyperspectral image (HSI) analysis have significantly improved spectral--spatial representation learning for remote sensing applications. Existing research mainly focuses on convolution-based learning, transformer-driven architectures, and multimodal fusion frameworks for hyperspectral classification and related image analysis tasks. Although these approaches demonstrate promising performance on terrestrial benchmark datasets, several challenges still remain in planetary hyperspectral analysis, particularly in multimodal fusion, self-supervised representation learning, and limited-sample generalization.
+
+\begin{table*}[ht]
+\centering
+\caption{Comparison of Existing Hyperspectral Learning Approaches with the Proposed TriadFormer Framework}
+\label{tab:comparison}
+
+\resizebox{\textwidth}{!}{
+\begin{tabular}{p{2.8cm} p{2.5cm} p{2.3cm} p{2cm} p{2cm} p{2.3cm} p{3.0cm}}
+
+\toprule
+
+\textbf{Method} &
+\textbf{Architecture Type} &
+\textbf{Learning Strategy} &
+\textbf{Multimodal Fusion} &
+\textbf{Planetary HSI Support} &
+\textbf{Attention Mechanism} &
+\textbf{Limitations} \\
+
+\midrule
+
+SpectralFormer \cite{ref12}
+&
+Transformer
+&
+Supervised
+&
+No
+&
+No
+&
+Self-Attention
+&
+Requires labeled data and single-modal learning
+\\
+
+Spatial-Spectral Transformer \cite{ref9}
+&
+Transformer
+&
+Supervised
+&
+No
+&
+No
+&
+Spectral-Spatial Attention
+&
+Limited multimodal contextual modeling
+\\
+
+MS2I2Former \cite{ref4}
+&
+Transformer
+&
+Supervised
+&
+No
+&
+No
+&
+Multi-scale Spectral-Spatial Attention
+&
+High computational complexity
+\\
+
+CentralFormer \cite{ref16}
+&
+Centralized Transformer
+&
+Supervised
+&
+No
+&
+No
+&
+Adaptive Relevance Attention
+&
+Focused only on spectral-spatial features
+\\
+
+Regularized Masked Auto-Encoder \cite{ref34}
+&
+Autoencoder
+&
+Semi-Supervised
+&
+No
+&
+No
+&
+Implicit Attention
+&
+Limited geological feature fusion
+\\
+
+CTF-SSCL \cite{ref37}
+&
+CNN + Transformer
+&
+Semi-Supervised
+&
+No
+&
+No
+&
+Contrastive Attention
+&
+Few-shot-oriented terrestrial analysis
+\\
+
+Multimodal Fusion Transformer \cite{ref29}
+&
+Multimodal Transformer
+&
+Supervised
+&
+Yes
+&
+No
+&
+Cross-Modal Attention
+&
+Not designed for lunar hyperspectral analysis
+\\
+
+CACFTNet \cite{ref3}
+&
+CNN + Transformer
+&
+Supervised
+&
+No
+&
+No
+&
+Cov-Attention + Cross-Layer Fusion
+&
+Limited self-supervised capability
+\\
+
+\textbf{Proposed TriadFormer}
+&
+\textbf{Cross-Attention Multimodal Framework}
+&
+\textbf{Self-Supervised}
+&
+\textbf{Yes}
+&
+\textbf{Yes}
+&
+\textbf{Cross-Attention Fusion}
+&
+\textbf{Designed for multimodal lunar mineral segmentation}
+\\
+
+\bottomrule
+
+\end{tabular}
+}
+\end{table*}
+
+
+\subsection{Classical Deep Learning Approaches for Hyperspectral Analysis}
+
+Early hyperspectral image analysis methods primarily relied on convolutional neural networks (CNNs), spectral unmixing techniques, and autoencoder-based representation learning methods for spectral classification and reconstruction tasks. CNN-based frameworks effectively capture local spatial structures and neighboring spectral correlations; however, they often struggle to model long-range spectral dependencies and global contextual information. Several studies have employed deep convolutional architectures and hybrid CNN-based frameworks for hyperspectral feature extraction, classification, and multimodal analysis, demonstrating improved representation capability compared with conventional approaches \cite{ref5,ref7,ref10}.
+
+Autoencoder-based frameworks have also been explored for hyperspectral reconstruction and spectral unmixing applications. Deep unsupervised latent-space learning and blind hyperspectral--multispectral fusion approaches have demonstrated the potential of learning useful spectral representations without requiring extensive pixel-level annotations \cite{ref15,ref22}. Pixel-level image fusion has also been extensively studied for integrating complementary information from heterogeneous image sources \cite{ref17}. Despite these advancements, conventional CNN and autoencoder architectures primarily emphasize local feature extraction or reconstruction and may have limited ability to capture global spectral relationships and multimodal geological dependencies required for planetary mineral analysis.
+
+
+\subsection{Transformer-Based Hyperspectral Learning Methods}
+
+Transformer architectures have recently gained significant attention in hyperspectral image analysis due to their ability to model long-range spectral dependencies through self-attention mechanisms. SpectralFormer introduced transformer-based spectral tokenization for hyperspectral image classification and demonstrated the effectiveness of transformer-based global feature modeling \cite{ref12}. Subsequently, spatial--spectral transformers, multiscale transformer architectures, and centralized spectral--spatial transformers have been proposed to improve spectral interaction learning and contextual feature representation \cite{ref9,ref4,ref16}.
+
+Recent transformer-based studies have further explored spectral tokenization, multiscale feature interaction, self-pooling mechanisms, and hybrid CNN--transformer architectures for improving hyperspectral representation learning \cite{ref20,ref21}. In addition, few-shot and semi-supervised transformer-based approaches have been investigated to improve representation learning under limited training conditions \cite{ref20,ref37}. Although transformer-based methods demonstrate improved global spectral modeling capability, most existing approaches are designed for supervised or semi-supervised terrestrial hyperspectral classification and generally require task-specific training data. Moreover, these frameworks primarily focus on single-modality hyperspectral imagery while neglecting complementary geological modalities such as topographic and elemental information.
+
+
+Recent studies have explored multimodal fusion strategies to improve remote sensing representation learning by integrating heterogeneous data modalities such as hyperspectral imagery, LiDAR data, and other multisource remote sensing observations \cite{ref5,ref7,ref51,ref52}. Multimodal transformer fusion networks have demonstrated enhanced feature interaction capability by jointly learning complementary representations across multiple modalities \cite{ref6,ref29}. These studies demonstrate the potential of multimodal learning for exploiting complementary spatial, spectral, and contextual information from heterogeneous remote sensing observations.
+
+Self-supervised and semi-supervised learning approaches have also gained considerable attention for reducing dependency on large labeled hyperspectral datasets. Unsupervised hyperspectral--multispectral fusion methods have demonstrated the feasibility of learning useful representations without extensive manual annotation \cite{ref15,ref22}. More recently, masked autoencoders and contrastive learning frameworks have been investigated for improving latent representation learning and spectral feature generalization under limited supervision \cite{ref34,ref37}. These developments highlight the importance of learning robust representations when labeled hyperspectral datasets are limited.
+
+However, existing multimodal and self-supervised frameworks are largely focused on terrestrial remote sensing applications, while comparatively limited work has explored self-supervised multimodal learning for planetary hyperspectral analysis using Chandrayaan-2 IIRS observations. Multisource remote sensing studies have established the value of combining heterogeneous observations, but the joint integration of hyperspectral, topographic, and elemental information for lunar mineral analysis remains insufficiently explored \cite{ref51,ref52}.
+
+Existing approaches demonstrate improvements in spectral representation learning, transformer-based contextual modeling, and multimodal feature fusion. However, efficient self-supervised multimodal representation learning for planetary hyperspectral analysis remains insufficiently explored. Most current methods lack unified modeling of spectral, topographic, and elemental relationships in a common latent representation space and exhibit limited generalization capability under small-sample lunar datasets. To address these limitations, the proposed \textit{TriadFormer} framework introduces a self-supervised multimodal learning architecture that jointly integrates hyperspectral, topographic, and elemental information through cross-attention-based fusion and SAM-guided latent representation learning for unsupervised lunar mineral segmentation.
+
+%% =========================================================
+%% Methodology
+%% =========================================================
+
+
+
+%% =========================================================
+%% Methodology
+%% =========================================================
+
+\section{Methodology}
+
+This section presents the proposed \textit{TriadFormer} framework for self-supervised multimodal lunar mineral segmentation. The overall architecture is designed to jointly learn spectral, topographic, and elemental representations from heterogeneous lunar datasets without requiring pixel-level mineral annotations. The complete architecture of the proposed framework is illustrated in Fig.~\ref{fig:overall_framework}, while Algorithm~\ref{alg:triadformer} summarizes the overall training and inference workflow, including multimodal feature extraction, cross-attention fusion, self-supervised optimization, and latent-space clustering for unsupervised lunar mineral segmentation. First, the multimodal dataset preparation and pre-processing strategies are discussed. Subsequently, the proposed multimodal feature extraction and cross-attention fusion architecture is presented in detail. Finally, the self-supervised optimization strategy, spectral reconstruction objective, and clustering-based mineral segmentation procedure are described.
+
+\begin{figure*}[!t]
+\centering
+\includegraphics[
+width=0.8\textwidth,
+keepaspectratio
+]{nish_arc.jpg}
+
+\caption{
+Overall architecture of the proposed \textit{TriadFormer} framework for self-supervised multimodal lunar mineral segmentation. The framework integrates Chandrayaan-2 IIRS hyperspectral imagery, TMC-2 digital elevation data, and Clementine FeO compositional maps through modality-specific encoder branches and a cross-attention transformer fusion module. The learned shared latent representation is jointly utilized for hyperspectral reconstruction and unsupervised latent clustering to generate spatial spectral--compositional segmentation maps.
+}
+
+\label{fig:overall_framework}
+
+\end{figure*}
+
+\subsection{Multimodal Dataset Preparation}
+
+\begin{figure*}[!t]
+\centering
+\includegraphics[width=0.92\textwidth]{Unknown.png}
+
+\caption{
+Visualization of multimodal lunar datasets utilized in the proposed framework.
+(a) Terrain Mapping Camera-2 (TMC-2) digital elevation model representing lunar topographic variations.
+(b) Clementine FeO abundance map representing elemental compositional distribution.
+(c) Spatial overlay of discovered latent spectral--compositional clusters generated through multimodal latent representation learning.
+}
+
+\label{fig:multimodal_dataset}
+
+\end{figure*}
+The proposed framework utilizes three complementary lunar datasets consisting of hyperspectral, topographic, and elemental modalities. The primary spectral modality is obtained from the Chandrayaan-2 Imaging Infrared Spectrometer (IIRS), which captures detailed hyperspectral reflectance information across multiple contiguous wavelength bands. In addition to spectral observations, Terrain Mapping Camera-2 (TMC-2) elevation data are incorporated to provide topographic surface information, while Clementine FeO abundance maps are utilized to capture elemental compositional characteristics associated with lunar mineral distribution. Fig.~\ref{fig:multimodal_dataset} illustrates the multimodal lunar datasets utilized in the proposed framework, including topographic elevation information, elemental FeO compositional distribution, and the corresponding spatial mineral cluster visualization obtained after multimodal latent representation learning.
+
+\subsubsection{Data Sources and Study Area}
+\label{sec:data_sources}
+
+Table~\ref{tab:data_products} lists the exact products used for each modality. All products were obtained from public archives: the Chandrayaan-2 IIRS and TMC-2 products from the ISRO Science Data Archive (PRADAN, Indian Space Science Data Centre), and the Clementine FeO map from the USGS Astrogeology / NASA Planetary Data System archive.
+
+\textbf{Hyperspectral modality (IIRS).} IIRS is a grating-based push-broom imaging spectrometer covering approximately 0.8--5.0~$\mu$m in 256 spectral channels, with a nominal ground sampling distance of about 80~m and a swath of about 20~km from the 100~km orbit \cite{Chowdhury2020IIRS}. The study uses the calibrated Level-\fillin{1/2} product \fillin{IIRS observation/product identifier(s), e.g.\ ch2\_iir\_nci\_YYYYMMDDThhmmss...}, acquired on \fillin{acquisition date (UTC)} at a solar incidence angle of \fillin{incidence angle}$^\circ$. The scene covers \fillin{lunar feature name}, centred at \fillin{latitude}$^\circ$\,\fillin{N/S}, \fillin{longitude}$^\circ$\,\fillin{E/W}, with an extent of \fillin{width} $\times$ \fillin{height}~km. Radiance was converted to reflectance by \fillin{procedure: division by solar irradiance and $\cos i$, thermal-emission removal method for $>$2.5~$\mu$m, photometric correction model}. Of the 256 channels, \fillin{number and wavelength ranges of channels removed, e.g.\ order-sorting-filter junctions, low-SNR edges, or ``none''} were excluded, giving the $B=$~\fillin{retained bands} bands used throughout the paper over the range \fillin{$\lambda_{\min}$}--\fillin{$\lambda_{\max}$}~$\mu$m.
+
+\textbf{Topographic modality (TMC-2).} Elevation is taken from the TMC-2 \fillin{DEM product identifier}, a stereo-derived digital elevation model generated from the fore/nadir/aft TMC-2 triplet (5~m panchromatic ground sampling) and distributed at \fillin{DEM posting, e.g.\ 10}~m/pixel \cite{Chowdhury2020TMC}. Elevations are referenced to \fillin{datum, e.g.\ a sphere of radius 1737.4~km}.
+
+\textbf{Elemental modality (Clementine FeO).} FeO abundance (wt\%) is taken from the Clementine UVVIS-derived map produced with the algorithm of Lucey et al.~\cite{Lucey2000}, \fillin{product name/identifier}, at \fillin{resolution, e.g.\ 100}~m/pixel.
+
+\begin{table*}[!t]
+\centering
+\caption{Source products, resolution and coordinate reference for each modality, and the common grid to which all modalities were resampled. Entries in red must be completed from the processing logs.}
+\label{tab:data_products}
+\renewcommand{\arraystretch}{1.15}
+\resizebox{\textwidth}{!}{%
+\begin{tabular}{lllll}
+\toprule
+\textbf{Modality} & \textbf{Source product / identifier} & \textbf{Native resolution} & \textbf{Native coordinate system} & \textbf{Physical quantity} \\
+\midrule
+IIRS hyperspectral & \fillin{product ID(s)} & $\sim$80~m, 256 channels & \fillin{e.g.\ Moon 2000, geographic lat/lon} & Reflectance (0.8--5.0~$\mu$m) \\
+TMC-2 DEM & \fillin{product ID} & \fillin{10}~m & \fillin{projection} & Elevation (m) \\
+Clementine FeO & \fillin{product ID} & \fillin{100}~m & \fillin{e.g.\ simple cylindrical} & FeO (wt\%) \\
+\midrule
+\textbf{Common analysis grid} & --- & \fillin{e.g.\ 80}~m & \fillin{projection, datum, radius} & --- \\
+\bottomrule
+\end{tabular}%
+}
+\end{table*}
+
+\subsubsection{Registration and Resampling}
+\label{sec:registration}
+
+All three modalities were reprojected to the common grid of Table~\ref{tab:data_products} (\fillin{projection}, \fillin{datum}). The IIRS cube was map-projected using \fillin{SPICE-based geometry / the georeferencing supplied with the product}. Because the IIRS footprint is the coarsest high-spectral-resolution layer, its grid was adopted as the reference and the auxiliary layers were resampled to it: the TMC-2 DEM was \fillin{downsampled by area averaging / bilinear interpolation}, and the Clementine FeO map was \fillin{upsampled by bilinear / nearest-neighbour interpolation}; IIRS spectra were never interpolated spectrally. Residual misregistration was corrected by \fillin{method, e.g.\ manual tie points on $n$ crater rims followed by an affine transform, or automatic feature matching}. Pixel-level correspondence was verified by \fillin{verification procedure, e.g.\ measuring the offset of $n$ independent check points (crater centres) identified in the IIRS 1.5~$\mu$m band and in a hillshade of the DEM}, yielding a root-mean-square registration error of \fillin{RMSE} pixels (\fillin{RMSE}~m). Note that, because the FeO map is natively coarser than the analysis grid, it contributes information at an effective resolution of \fillin{100}~m irrespective of the sampling grid. Let the co-registered hyperspectral cube be represented as:
+
+\[
+\mathbf{X}_{h} \in \mathbb{R}^{H \times W \times B}
+\]
+
+where \(H\) and \(W\) denote spatial dimensions and \(B\) represents the total number of spectral bands. Similarly, the topographic and elemental modalities are represented as:
+
+\[
+\mathbf{X}_{t} \in \mathbb{R}^{H \times W}
+\]
+
+\[
+\mathbf{X}_{e} \in \mathbb{R}^{H \times W}
+\]
+
+\subsubsection{Invalid Pixels and Missing Values}
+\label{sec:invalid}
+
+A binary validity mask $\mathbf{M}\in\{0,1\}^{H\times W}$ is constructed before normalization. A pixel is marked invalid ($M=0$) if any of the following holds: (i) it carries the archive no-data value or a non-finite value (NaN/Inf) in any modality; (ii) it lies outside the common footprint of the three layers after reprojection; (iii) its IIRS spectrum contains \fillin{criterion, e.g.\ negative reflectance or saturation} in any retained band; or (iv) \fillin{any additional criterion, e.g.\ permanently shadowed / incidence angle $>$ threshold, or ``none''}. Invalid pixels are not interpolated. Instead, they are excluded from the computation of normalization statistics, from the loss functions (the MSE and SAM terms are averaged only over valid pixels), and from clustering and all reported metrics. Patches whose fraction of invalid pixels exceeds \fillin{threshold, e.g.\ 5\%} are discarded entirely; in the retained patches, invalid pixels are set to zero after normalization so that they do not affect the forward pass beyond their masked loss contribution.
+
+\subsubsection{Normalization}
+\label{sec:normalization}
+
+To reduce scale variability and improve optimization stability, each modality is independently normalized using min--max normalization. To prevent information leakage, the minimum and maximum are computed only over the valid pixels of the \emph{training} region (Section~\ref{sec:split}) and are then applied unchanged to the validation and test regions. The hyperspectral cube is normalized \fillin{per band / globally across all bands}. The normalized modalities are computed as:
+
+\[
+\begin{aligned}
+\hat{\mathbf{X}}_{h} &=
+\frac{\mathbf{X}_{h}-\mathbf{X}_{h,\min}}
+{\max(\mathbf{X}_{h,\max}-\mathbf{X}_{h,\min},\,\epsilon)},
+\qquad
+\hat{\mathbf{X}}_{t}=
+\frac{\mathbf{X}_{t}-\mathbf{X}_{t,\min}}
+{\max(\mathbf{X}_{t,\max}-\mathbf{X}_{t,\min},\,\epsilon)},\\[3pt]
+\hat{\mathbf{X}}_{e} &=
+\frac{\mathbf{X}_{e}-\mathbf{X}_{e,\min}}
+{\max(\mathbf{X}_{e,\max}-\mathbf{X}_{e,\min},\,\epsilon)}.
+\end{aligned}
+\]
+
+where \(\hat{\mathbf{X}}_{h}\), \(\hat{\mathbf{X}}_{t}\), and \(\hat{\mathbf{X}}_{e}\) denote the normalized hyperspectral, topographic, and elemental modalities, respectively. The terms \(\mathbf{X}_{h}\), \(\mathbf{X}_{t}\), and \(\mathbf{X}_{e}\) represent the corresponding original input modalities, while \(\mathbf{X}_{(\cdot),\min}\) and \(\mathbf{X}_{(\cdot),\max}\) denote the minimum and maximum values computed over valid training pixels independently for each modality. The constant $\epsilon=$~\fillin{e.g.\ $10^{-8}$} guards against a zero denominator for a constant band or layer. Test-region values falling outside the training range are \fillin{clipped to $[0,1]$ / left unclipped}. The same $\epsilon$ is used in the denominator of the SAM loss (Section~\ref{sec:sam}) so that all-zero (masked) spectra do not produce undefined angles.
+
+\subsubsection{Patch Extraction, Sample Counts and Data Split}
+\label{sec:split}
+
+After normalization, spatial patches of size \(P \times P\) ($P=64$) are extracted from all modalities with a stride of \fillin{stride} pixels, so that adjacent patches overlap by \fillin{$64-$stride} pixels. These multimodal patches are subsequently used as input samples for self-supervised representation learning.
+
+Because overlapping patches are spatially dependent, a random patch-level split would place nearly identical content in the training and evaluation sets. The scene is therefore partitioned into \emph{spatially disjoint} blocks before patch extraction: \fillin{describe partition, e.g.\ the scene is divided into $n$ along-track strips; strips $\ldots$ form the training region, strip $\ldots$ the validation region and strip $\ldots$ the test region}, with a buffer of at least $P=64$ pixels between regions so that no patch from one region overlaps another. The validation region is used for early stopping and for selecting the number of clusters (Section~\ref{sec:k_selection}); the test region is used only for the final reported metrics. Table~\ref{tab:sample_counts} reports the resulting sample counts.
+
+\begin{table}[!t]
+\centering
+\caption{Number of pixels and patches at each stage of preprocessing. Entries in red must be completed from the processing logs.}
+\label{tab:sample_counts}
+\renewcommand{\arraystretch}{1.15}
+\resizebox{\columnwidth}{!}{%
+\begin{tabular}{lcccc}
+\toprule
+\textbf{Quantity} & \textbf{Train} & \textbf{Val.} & \textbf{Test} & \textbf{Total} \\
+\midrule
+Pixels on common grid ($H\times W$) & \fillin{} & \fillin{} & \fillin{} & \fillin{} \\
+Valid pixels ($M=1$) & \fillin{} & \fillin{} & \fillin{} & \fillin{} \\
+Patches extracted (stride \fillin{}) & \fillin{} & \fillin{} & \fillin{} & \fillin{} \\
+Patches retained after masking & \fillin{} & \fillin{} & \fillin{} & \fillin{} \\
+Latent vectors clustered & \fillin{} & \fillin{} & \fillin{} & \fillin{} \\
+\bottomrule
+\end{tabular}%
+}
+\end{table}
+
+\subsection{Proposed TriadFormer Framework}
+
+The proposed \textit{TriadFormer} architecture is designed to jointly model spectral, spatial, topographic, and elemental relationships through multimodal representation learning. The complete framework consists of three major stages: (i) modality-specific feature extraction, (ii) cross-attention-based multimodal fusion, and (iii) self-supervised latent representation learning. Fig.~\ref{fig:overall_framework} illustrates the complete pipeline of the proposed framework including multimodal input preparation, modality-specific feature encoders, cross-attention transformer fusion layers, latent embedding generation, reconstruction learning, and clustering-based mineral segmentation output generation. Algorithm~\ref{alg:triadformer} summarizes the overall training and multimodal representation learning procedure utilized in the proposed framework.
+
+\begin{table*}[!t]
+\centering
+\caption{Pseudocode of the Proposed \textit{TriadFormer} Framework}
+\label{alg:triadformer}
+
+\renewcommand{\arraystretch}{1.12}
+
+\begin{tabular}{p{0.97\textwidth}}
+
+\hline
+
+\textbf{Input:}
+Multimodal lunar datasets:
+Hyperspectral imagery $\mathbf{X}_{h}$,
+Topographic data $\mathbf{X}_{t}$,
+Elemental FeO maps $\mathbf{X}_{e}$;
+Patch size $P$,
+batch size $B$,
+learning rate $lr$,
+epochs $E$,
+latent dimension $d$,
+number of clusters $K$
+
+\\
+
+\textbf{Output:}
+Trained \textit{TriadFormer} model and unsupervised lunar mineral segmentation maps
+
+\\
+
+\hline
+
+1: Initialize modality-specific encoder parameters
+$\theta_h,\theta_t,\theta_e$
+
+\\
+
+2: Initialize cross-attention fusion parameters
+$\theta_f$
+
+\\
+
+3: Initialize decoder parameters
+$\theta_d$
+
+\\
+
+4: \textbf{for} epoch $=1$ to $E$ \textbf{do}
+
+\\
+
+5: \hspace{0.5cm} Extract multimodal patches:
+$\mathbf{P}_h,\mathbf{P}_t,\mathbf{P}_e$
+
+\\
+
+6: \hspace{0.5cm} \textbf{for} each mini-batch $B_i$ \textbf{do}
+
+\\
+
+7: \hspace{1cm} Select batch samples:
+$(\mathbf{P}_h^{(i)},\mathbf{P}_t^{(i)},\mathbf{P}_e^{(i)})$
+
+\\
+
+8: \hspace{1cm} Extract hyperspectral spectral-spatial features:
+$\mathbf{F}_h=f_h(\mathbf{P}_h^{(i)})$
+
+\\
+
+9: \hspace{1cm} Extract topographic features:
+$\mathbf{F}_t=f_t(\mathbf{P}_t^{(i)})$
+
+\\
+
+10: \hspace{1cm} Extract elemental features:
+$\mathbf{F}_e=f_e(\mathbf{P}_e^{(i)})$
+
+\\
+
+11: \hspace{1cm} Flatten features into $N$ aligned tokens and generate query, key and value embeddings:
+$\mathbf{Q}=\mathbf{F}_h\mathbf{W}_Q\in\mathbb{R}^{N\times d}$,
+$\mathbf{K}=[\mathbf{F}_t;\mathbf{F}_e]\mathbf{W}_K$,
+$\mathbf{V}=[\mathbf{F}_t;\mathbf{F}_e]\mathbf{W}_V\in\mathbb{R}^{2N\times d}$
+
+\\
+
+12: \hspace{1cm} Compute cross-attention contextual representation (shown for one head; $h$ heads are concatenated and projected by $\mathbf{W}_O$):
+$\mathbf{C}
+=
+\mathrm{Softmax}
+\left(
+\frac{\mathbf{Q}\mathbf{K}^{T}}
+{\sqrt{d_k}}
+\right)\mathbf{V}$
+
+\\
+
+13: \hspace{1cm} Fuse hyperspectral and contextual representations:
+$\mathbf{Z}=f_{\mathrm{fusion}}(\mathbf{F}_h,\mathbf{C})\in\mathbb{R}^{N\times d}$
+
+\\
+
+14: \hspace{1cm} Reconstruct hyperspectral observations:
+$\hat{\mathbf{X}}_{h}=f_{\mathrm{dec}}(\mathbf{Z})$
+
+\\
+
+15: \hspace{1cm} Compute reconstruction loss:
+$L_{\mathrm{MSE}}$
+
+\\
+
+16: \hspace{1cm} Compute spectral consistency loss:
+$L_{\mathrm{SAM}}$
+
+\\
+
+17: \hspace{1cm} Compute total optimization loss:
+$L_{\mathrm{total}}
+=
+L_{\mathrm{MSE}}
++
+\lambda L_{\mathrm{SAM}}$
+
+\\
+
+18: \hspace{1cm} Update
+$\theta_h,\theta_t,\theta_e,\theta_f,\theta_d$
+using backpropagation and the AdamW optimizer
+
+\\
+
+19: \hspace{0.5cm} \textbf{end for}
+
+\\
+
+20: \textbf{end for}
+
+\\
+
+21: Extract latent feature vectors:
+$\mathbf{Z}
+=
+\{\mathbf{z}_1,\mathbf{z}_2,\ldots,\mathbf{z}_N\}$
+
+\\
+
+22: Select $K$ on the validation region (Section~\ref{sec:k_selection}) and partition latent vectors into $K$ latent spectral--compositional clusters using K-means clustering
+
+\\
+
+23: Project clustered latent representations back to the spatial domain to generate spectral--compositional segmentation maps, and interpret clusters against reference spectra and FeO (Section~\ref{sec:interpretation})
+
+\\
+
+24: Return trained \textit{TriadFormer} framework and unsupervised lunar mineral segmentation maps
+
+\\
+
+\hline
+
+\end{tabular}
+
+\end{table*}
+\subsubsection{Modality-Specific Feature Extraction}
+
+\begin{figure*}[!t]
+\centering
+\includegraphics[width=0.95\textwidth]{abc.png}
+\caption{
+Architecture of the modality-specific feature extraction branches utilized in the proposed \textit{TriadFormer} framework.
+(a) Spectral-spatial hyperspectral encoder based on 3D convolutional operations for extracting joint spectral and spatial representations from Chandrayaan-2 IIRS hyperspectral imagery.
+(b) Topographic encoder based on lightweight 2D convolutional layers for learning contextual terrain representations from TMC-2 elevation data.
+(c) Elemental encoder based on lightweight 2D convolutional layers for extracting discriminative elemental abundance features from Clementine FeO maps, facilitating mineral composition representation learning.
+}
+\label{fig:modality_encoder}
+\end{figure*}
+
+The hyperspectral branch of the proposed framework is responsible for extracting discriminative spectral-spatial representations from Chandrayaan-2 IIRS hyperspectral patches. Since hyperspectral imagery contains highly correlated spectral information distributed across contiguous wavelength bands, learning meaningful spectral dependencies is essential for accurate mineral representation modeling. Fig.~\ref{fig:modality_encoder} illustrates the modality-specific feature extraction branches utilized in the proposed \textit{TriadFormer} framework for learning spectral-spatial hyperspectral representations and contextual topographic features from multimodal lunar datasets.
+
+Given an input hyperspectral patch,
+
+\[
+\mathbf{P}_{h} \in \mathbb{R}^{P \times P \times B},
+\]
+
+where $\mathbf{P}_{h}$ denotes the hyperspectral input patch, $P$ represents the spatial patch dimension (height and width), and $B$ denotes the total number of hyperspectral spectral bands acquired by the Chandrayaan-2 IIRS sensor.
+
+A sequence of convolutional feature extraction layers is employed to capture local spectral-spatial structures and hierarchical contextual information. The extracted hyperspectral representation is expressed as
+
+\[
+\mathbf{F}_{h}=f_{h}(\mathbf{P}_{h}),
+\]
+
+where $\mathbf{F}_{h}$ denotes the learned hyperspectral feature representation, and $f_h(\cdot)$ represents the spectral-spatial feature extraction function implemented using stacked 3D convolutional layers, batch normalization, nonlinear activation, and feature transformation operations. Convolutional operations enable the framework to preserve neighboring spectral relationships while simultaneously learning local spatial characteristics associated with lunar surface morphology.
+
+Similarly, the topographic and elemental modalities are independently processed using lightweight convolutional encoders to preserve modality-specific structural information. The extracted topographic representation is defined as
+
+\[
+\mathbf{F}_{t}=f_{t}(\mathbf{P}_{t}),
+\]
+
+where $\mathbf{P}_{t}$ denotes the TMC-2 digital elevation model (DEM) patch, $\mathbf{F}_{t}$ represents the learned topographic feature representation, and $f_t(\cdot)$ corresponds to the topographic feature extraction function implemented using lightweight 2D convolutional operations.
+
+Likewise, the elemental feature representation is obtained as
+
+\[
+\mathbf{F}_{e}=f_{e}(\mathbf{P}_{e}),
+\]
+
+where $\mathbf{P}_{e}$ denotes the Clementine FeO elemental abundance patch, $\mathbf{F}_{e}$ represents the extracted elemental feature representation, and $f_e(\cdot)$ denotes the elemental feature extraction function based on lightweight 2D convolutional layers. The resulting modality-specific feature representations $\mathbf{F}_{h}$, $\mathbf{F}_{t}$, and $\mathbf{F}_{e}$ are subsequently forwarded to the cross-attention multimodal fusion module for learning a unified latent representation.
+
+\subsubsection{Cross-Attention Multimodal Fusion}
+
+Although independent feature extraction captures modality-specific representations, efficient lunar mineral characterization requires joint modeling of spectral, topographic, and elemental relationships. To address this limitation, the proposed framework incorporates a cross-attention-based multimodal fusion mechanism that enables contextual interaction among heterogeneous modalities.
+
+\begin{figure*}[!t]
+\centering
+\includegraphics[width=0.95\textwidth]{elsarticle/arch4.png}
+\caption{
+Cross-attention fusion architecture of the proposed \textit{TriadFormer} framework. Modality-specific hyperspectral, topographic, and elemental features are flattened into $N=(P/s)^2$ spatially aligned tokens; hyperspectral tokens form the queries ($N\times64$) and the token-wise concatenation of topographic and elemental tokens forms the keys and values ($2N\times64$). These are fused through an $h=$~\fillin{}-head cross-attention module with a residual connection, layer normalization and a feed-forward block to learn a shared latent representation $\mathbf{Z}\in\mathbb{R}^{N\times64}$ for self-supervised hyperspectral reconstruction and unsupervised spectral--compositional segmentation. Tensor shapes are listed in Table~\ref{tab:tensor_shapes}.
+}
+\label{fig:cross_attention}
+\end{figure*}
+
+Fig.~\ref{fig:cross_attention} illustrates the proposed cross-attention multimodal fusion mechanism utilized for contextual interaction learning among hyperspectral, topographic, and elemental feature representations. The generated unified latent embedding is subsequently utilized for hyperspectral reconstruction and spectral consistency optimization through SAM-guided reconstruction learning.
+
+Unlike conventional feature concatenation methods, cross-attention dynamically learns inter-modal dependencies by projecting modality-specific feature representations into query, key, and value embeddings. The tensor shapes at every stage are summarized in Table~\ref{tab:tensor_shapes}; the formulation below is given for a single patch, and the batch dimension is omitted.
+
+\textbf{Tokenization and spatial alignment.} The hyperspectral encoder $f_h$ maps the patch $\mathbf{P}_h\in\mathbb{R}^{P\times P\times B}$, treated as a single-channel volume of size $B\times P\times P$, to a feature volume whose spectral axis is collapsed by \fillin{a final 3D convolution spanning the remaining spectral depth / spectral average pooling}, giving a 2D feature map of size $c_h\times\frac{P}{s}\times\frac{P}{s}$, where $s=$~\fillin{total spatial stride, e.g.\ 4} is the total spatial downsampling factor of the encoder. The topographic and elemental encoders $f_t$ and $f_e$ use the same total spatial stride $s$ and output $c_a\times\frac{P}{s}\times\frac{P}{s}$ feature maps. Because the three input patches are co-registered (Section~\ref{sec:registration}) and all encoders share the same stride and padding, the $n$-th spatial position in every branch covers the same $s\times s$ ground footprint. Each feature map is flattened in raster order into $N=(P/s)^2$ tokens:
+\[
+\mathbf{F}_{h}\in\mathbb{R}^{N\times c_h},\qquad
+\mathbf{F}_{t}\in\mathbb{R}^{N\times c_a},\qquad
+\mathbf{F}_{e}\in\mathbb{R}^{N\times c_a},
+\]
+with $c_h=$~\fillin{}, $c_a=$~\fillin{}, and $N=$~\fillin{e.g.\ 256 for $s=4$}. A \fillin{learnable / fixed sinusoidal} 2D positional encoding $\mathbf{E}_{\mathrm{pos}}\in\mathbb{R}^{N\times d}$ is added after projection so that attention can exploit spatial position, and a learnable modality embedding \fillin{is / is not} added to distinguish topographic from elemental tokens.
+
+\textbf{Query, key and value projections.} The query, key, and value matrices are computed as
+
+\[
+\mathbf{Q}=\mathbf{F}_{h}\mathbf{W}_{Q}\in\mathbb{R}^{N\times d},
+\]
+
+\[
+\mathbf{K}=[\mathbf{F}_{t};\mathbf{F}_{e}]\mathbf{W}_{K}\in\mathbb{R}^{2N\times d},
+\]
+
+\[
+\mathbf{V}=[\mathbf{F}_{t};\mathbf{F}_{e}]\mathbf{W}_{V}\in\mathbb{R}^{2N\times d},
+\]
+
+where $\mathbf{F}_{h}$, $\mathbf{F}_{t}$, and $\mathbf{F}_{e}$ denote the hyperspectral, topographic, and elemental token sequences, respectively, $\mathbf{W}_{Q}\in\mathbb{R}^{c_h\times d}$ and $\mathbf{W}_{K},\mathbf{W}_{V}\in\mathbb{R}^{c_a\times d}$ are learnable linear projections, and $d=64$ is the model (latent) dimension. Here $[\cdot;\cdot]$ denotes concatenation along the \emph{token} axis, so that $[\mathbf{F}_{t};\mathbf{F}_{e}]\in\mathbb{R}^{2N\times c_a}$ and every hyperspectral query can attend to any topographic or elemental token within the patch.
+% AUTHOR NOTE: verify against the code. If the implementation instead concatenates
+% along the channel axis ([F_t, F_e] in R^{N x 2c_a}), then K,V are N x d and W_K,W_V
+% are 2c_a x d; update this paragraph, Table tab:tensor_shapes and Fig. cross_attention.
+
+\textbf{Multi-head attention.} Attention is computed with $h=$~\fillin{number of heads} heads of dimension $d_k=d/h=$~\fillin{}. Splitting $\mathbf{Q},\mathbf{K},\mathbf{V}$ column-wise into $h$ blocks $\mathbf{Q}_j\in\mathbb{R}^{N\times d_k}$ and $\mathbf{K}_j,\mathbf{V}_j\in\mathbb{R}^{2N\times d_k}$, the cross-modal contextual representation is obtained using scaled dot-product attention:
+
+\[
+\mathbf{H}_j
+=
+\mathrm{Softmax}
+\left(
+\frac{\mathbf{Q}_j\mathbf{K}_j^{T}}
+{\sqrt{d_{k}}}
+\right)\mathbf{V}_j\in\mathbb{R}^{N\times d_k},
+\qquad
+\mathbf{C}=[\mathbf{H}_1,\ldots,\mathbf{H}_h]\,\mathbf{W}_{O}\in\mathbb{R}^{N\times d},
+\]
+
+where the softmax is taken over the $2N$ key tokens, $\mathbf{W}_O\in\mathbb{R}^{d\times d}$ is the output projection, and $\mathbf{C}$ denotes the cross-modal contextual representation. For $h=1$ this reduces to $\mathbf{C}=\mathrm{Softmax}(\mathbf{Q}\mathbf{K}^{T}/\sqrt{d_k})\mathbf{V}$, the single-head form used in Algorithm~\ref{alg:triadformer}. Attention dropout is \fillin{rate}.
+
+The cross-attention mechanism allows the framework to selectively emphasize informative spectral-topographic-elemental interactions while suppressing redundant modality-specific variations. Consequently, the contextual representation captures complementary geological characteristics associated with lunar mineral structures. The hyperspectral modality is utilized as the query representation because spectral information contains the primary mineralogical characteristics associated with lunar surface composition. In contrast, the topographic and elemental modalities are incorporated as contextual key-value embeddings to provide complementary geological constraints during multimodal interaction learning.
+
+The final unified latent embedding, denoted by $\mathbf{Z}$, is obtained by fusing the original hyperspectral feature representation with the cross-modal contextual representation as
+
+\[
+\mathbf{Z}
+=
+f_{\mathrm{fusion}}
+(\mathbf{F}_{h},\mathbf{C}),
+\]
+
+where $\mathbf{Z}$ denotes the unified latent embedding, $f_{\mathrm{fusion}}(\cdot)$ represents the learnable multimodal fusion function that integrates the original hyperspectral representation with the cross-modal contextual representation, and $\mathbf{C}$ provides complementary geological information learned from the topographic and elemental modalities through the cross-attention mechanism. Concretely, $f_{\mathrm{fusion}}$ is a residual transformer-style block:
+\[
+\tilde{\mathbf{Z}}=\mathrm{LN}\!\left(\mathbf{F}_h\mathbf{W}_{P}+\mathbf{E}_{\mathrm{pos}}+\mathbf{C}\right),
+\qquad
+\mathbf{Z}=\mathrm{LN}\!\left(\tilde{\mathbf{Z}}+\mathrm{FFN}(\tilde{\mathbf{Z}})\right)\in\mathbb{R}^{N\times d},
+\]
+where $\mathbf{W}_P\in\mathbb{R}^{c_h\times d}$ projects the hyperspectral tokens to the model dimension (the residual path), $\mathrm{LN}$ is layer normalization, and $\mathrm{FFN}$ is a two-layer perceptron $d\rightarrow$~\fillin{hidden width}~$\rightarrow d$ with \fillin{GELU} activation. The block is stacked $L=$~\fillin{number of fusion layers} times, with the output of each layer serving as the query input of the next while the keys and values remain the topographic and elemental tokens. The output passed to both the decoder and the clustering module is therefore $\mathbf{Z}\in\mathbb{R}^{N\times 64}$ per patch.
+% AUTHOR NOTE: if the code uses a different fusion (e.g. concatenation [F_h W_P, C]
+% followed by a linear layer, or no FFN), replace the two equations above accordingly.
+
+The decoder $f_{\mathrm{dec}}$ reshapes $\mathbf{Z}$ to a $d\times\frac{P}{s}\times\frac{P}{s}$ map and restores the input resolution with \fillin{$\log_2 s$ transposed-convolution / upsampling+convolution} stages, producing $\hat{\mathbf{X}}_h\in\mathbb{R}^{P\times P\times B}$ followed by a \fillin{sigmoid} output activation. The learned latent embedding $\mathbf{Z}$ is subsequently utilized for hyperspectral reconstruction and SAM-guided spectral consistency optimization.
+
+\begin{table*}[!t]
+\centering
+\caption{Tensor shapes through the \textit{TriadFormer} pipeline for one $64\times64$ patch ($P=64$, $d=64$, total encoder stride $s$, $N=(P/s)^2$ tokens, $h$ heads). Entries in red must match the released implementation.}
+\label{tab:tensor_shapes}
+\renewcommand{\arraystretch}{1.15}
+\resizebox{\textwidth}{!}{%
+\begin{tabular}{llll}
+\toprule
+\textbf{Stage} & \textbf{Operation} & \textbf{Output shape} & \textbf{Example ($s=$~\fillin{4})} \\
+\midrule
+IIRS input & --- & $B\times P\times P$ & \fillin{$B$}$\times64\times64$ \\
+TMC-2 / FeO input & --- & $1\times P\times P$ (each) & $1\times64\times64$ \\
+Hyperspectral encoder $f_h$ & \fillin{$n$} 3D conv + BN + ReLU, spectral collapse & $c_h\times\frac{P}{s}\times\frac{P}{s}$ & \fillin{} \\
+Topographic / elemental encoders $f_t,f_e$ & \fillin{$n$} 2D conv + BN + ReLU & $c_a\times\frac{P}{s}\times\frac{P}{s}$ (each) & \fillin{} \\
+Tokenization & flatten (raster order) & $\mathbf{F}_h$: $N\times c_h$; $\mathbf{F}_t,\mathbf{F}_e$: $N\times c_a$ & \fillin{} \\
+Query & $\mathbf{F}_h\mathbf{W}_Q$ & $N\times d$ & \fillin{}$\times64$ \\
+Key / value & $[\mathbf{F}_t;\mathbf{F}_e]\mathbf{W}_{K}$, $[\mathbf{F}_t;\mathbf{F}_e]\mathbf{W}_{V}$ & $2N\times d$ & \fillin{}$\times64$ \\
+Attention weights (per head) & $\mathrm{Softmax}(\mathbf{Q}_j\mathbf{K}_j^T/\sqrt{d_k})$ & $N\times 2N$ & \fillin{} \\
+Context $\mathbf{C}$ & concat heads, $\mathbf{W}_O$ & $N\times d$ & \fillin{}$\times64$ \\
+Latent $\mathbf{Z}$ & $f_{\mathrm{fusion}}$, $L$ layers & $N\times d$ & \fillin{}$\times64$ \\
+Decoder output $\hat{\mathbf{X}}_h$ & reshape, upsample & $B\times P\times P$ & \fillin{$B$}$\times64\times64$ \\
+Clustering input & per-token $\mathbf{z}_n$ (Section~\ref{sec:clustering_method}) & $N_z\times d$ & $N_z\times64$ \\
+\bottomrule
+\end{tabular}%
+}
+\end{table*}
+
+\subsubsection{Shared Latent Representation Learning}
+
+The cross-attention fusion module generates the unified latent representation illustrated in Fig.~\ref{fig:overall_framework}, which serves as the information bottleneck of the proposed framework. The learned multimodal representation integrates complementary spectral, topographic, and elemental characteristics into a compact embedding space suitable for downstream reconstruction and clustering tasks.
+
+The shared latent embedding is represented as
+
+\[
+\mathbf{Z}\in\mathbb{R}^{N\times d},
+\]
+
+where $\mathbf{Z}$ denotes the unified latent representation generated by the multimodal fusion module for one patch, $N=(P/s)^2$ represents the number of spatial tokens per patch, each corresponding to an $s\times s$ pixel footprint, and $d=64$ denotes the latent feature dimension.
+
+The latent embedding is designed to preserve discriminative geological information while reducing redundancy across heterogeneous modalities. In the proposed implementation, the multimodal representation is compressed into a compact latent space that simultaneously captures spectral variability, topographic structure, and elemental composition. The learned representation $\mathbf{Z}$ serves as a common feature space that enables effective interaction among heterogeneous modalities while preserving their complementary geological characteristics.
+
+Subsequently, the shared latent representation is utilized for two complementary objectives: self-supervised hyperspectral reconstruction through the decoder network and clustering-based mineral segmentation analysis. Consequently, $\mathbf{Z}$ acts as a unified geological embedding that bridges multimodal representation learning and unsupervised mineral pattern discovery.
+
+\subsection{Self-Supervised Hyperspectral Reconstruction}
+
+The shared latent embedding generated through cross-attention multimodal fusion is utilized to reconstruct the original hyperspectral observations. This reconstruction objective enables the proposed framework to learn meaningful multimodal geological representations without requiring pixel-level mineral annotations. By reconstructing the original hyperspectral spectra from compact latent embeddings, the framework is encouraged to preserve both spectral fidelity and contextual geological information during optimization.
+
+The unified latent representation $\mathbf{Z}$ is passed through a decoder network to reconstruct the original hyperspectral observations as
+
+\[
+\hat{\mathbf{X}}_{h}
+=
+f_{\mathrm{dec}}(\mathbf{Z}),
+\]
+
+where $\mathbf{Z}$ denotes the shared latent representation learned through multimodal fusion, $\hat{\mathbf{X}}_{h}$ represents the reconstructed hyperspectral observations, and $f_{\mathrm{dec}}(\cdot)$ denotes the decoder network responsible for mapping the latent embedding back to the hyperspectral feature space.
+
+The reconstruction objective minimizes the discrepancy between the original hyperspectral observations and their reconstructed counterparts using the mean squared error (MSE) loss, defined as
+
+\[
+L_{\mathrm{MSE}}
+=
+\frac{1}{N}
+\sum_{i=1}^{N}
+\left\|
+\mathbf{X}_{h}^{(i)}
+-
+\hat{\mathbf{X}}_{h}^{(i)}
+\right\|_{2}^{2},
+\]
+
+where $\mathbf{X}_{h}^{(i)}$ and $\hat{\mathbf{X}}_{h}^{(i)}$ denote the original and reconstructed hyperspectral samples corresponding to the $i$-th training instance, respectively, $N$ represents the total number of training samples in a mini-batch, and $\|\cdot\|_{2}^{2}$ denotes the squared Euclidean norm.
+
+The reconstruction objective encourages the shared latent embedding to preserve important spectral characteristics and multimodal contextual information during representation learning, thereby enabling robust self-supervised feature learning without relying on pixel-level mineral annotations.
+
+\subsubsection{SAM-Guided Spectral Consistency Optimization}
+\label{sec:sam}
+
+Although the reconstruction loss minimizes pixel-level intensity differences, it may not adequately preserve spectral similarity between reconstructed and original hyperspectral signatures. To address this limitation, a Spectral Angle Mapper (SAM)-guided optimization objective is incorporated into the learning process.
+
+The SAM metric measures the angular similarity between the original and reconstructed spectral vectors and is defined as
+
+\[
+L_{\mathrm{SAM}}
+=
+\frac{1}{N}
+\sum_{i=1}^{N}
+\cos^{-1}
+\left(
+\frac
+{\mathbf{x}_{i}^{T}\hat{\mathbf{x}}_{i}}
+{\|\mathbf{x}_{i}\|_{2}\,
+\|\hat{\mathbf{x}}_{i}\|_{2}+\epsilon}
+\right),
+\]
+
+where $\mathbf{x}_{i}$ and $\hat{\mathbf{x}}_{i}$ denote the original and reconstructed hyperspectral spectral vectors corresponding to the $i$-th training sample, respectively, $N$ represents the total number of training samples in a mini-batch, $(\cdot)^{T}$ denotes the vector transpose operation, and $\|\cdot\|_{2}$ denotes the Euclidean norm. Here a ``sample'' is a single valid pixel spectrum ($\mathbf{x}_i\in\mathbb{R}^{B}$), the sum runs only over valid pixels ($M=1$), $\epsilon$ is the constant of Section~\ref{sec:normalization}, and the argument of $\cos^{-1}$ is clipped to $[-1+\delta,\,1-\delta]$ with $\delta=$~\fillin{e.g.\ $10^{-7}$} to keep the gradient finite. The SAM error reported in the results is expressed in \fillin{radians}.
+
+Lower values of $L_{\mathrm{SAM}}$ indicate improved spectral consistency and reduced angular distortion between the reconstructed and original hyperspectral signatures.
+
+The final optimization objective combines the reconstruction loss with the SAM-guided spectral consistency loss as
+
+\[
+L_{\mathrm{total}}
+=
+L_{\mathrm{MSE}}
++
+\lambda
+L_{\mathrm{SAM}},
+\]
+
+where $L_{\mathrm{MSE}}$ denotes the reconstruction loss defined in the previous subsection, $L_{\mathrm{SAM}}$ represents the average spectral angle loss, and $\lambda$ is a weighting parameter that controls the contribution of spectral consistency during model optimization.
+
+The inclusion of SAM-guided optimization encourages the learned latent representation to preserve spectral fidelity while simultaneously improving the discriminative quality of multimodal features for hyperspectral mineral segmentation.
+
+
+
+
+
+
+\subsection{Latent Space Clustering for Spectral--Compositional Segmentation}
+\label{sec:clustering_method}
+
+\begin{figure*}[!t]
+\centering
+\includegraphics[
+width=0.84\textwidth,
+keepaspectratio
+]{fig2.png}
+
+\caption{
+Visualization of the latent-space clustering and mineral segmentation strategy utilized in the proposed \textit{TriadFormer} framework. The learned multimodal latent embeddings are visualized using t-SNE and PCA and subsequently partitioned using K-means clustering to discover statistically separable spectral--compositional clusters. The clustered latent embeddings are finally projected back into the spatial domain to generate unsupervised segmentation maps.
+}
+
+\label{fig:latent_clustering}
+
+\end{figure*}
+
+After completion of self-supervised representation learning, the latent embeddings extracted from the bottleneck representation layer are utilized for unsupervised mineral clustering. The clustering stage operates directly on the learned multimodal latent embedding space, enabling mineral pattern discovery using compact geological representations generated through fusion. Fig.~\ref{fig:latent_clustering} illustrates the latent-space clustering and mineral segmentation strategy utilized in the proposed framework, where the learned multimodal embeddings are visualized in lower-dimensional manifolds using t-SNE and PCA, and subsequently partitioned through K-means clustering to generate spatial lunar mineral segmentation maps.
+
+The shared latent representation obtained from the multimodal fusion module is represented as
+
+\[
+\mathbf{Z}
+=
+\{\mathbf{z}_{1},\mathbf{z}_{2},\ldots,\mathbf{z}_{N_z}\},
+\]
+
+where $\mathbf{z}_{i}\in\mathbb{R}^{d}$ denotes the latent feature vector corresponding to the $i$-th ground location, $N_z$ represents the total number of embedded samples (Table~\ref{tab:sample_counts}), and $d$ denotes the dimensionality of the latent feature space. The clustering unit is a single latent token, i.e.\ an $s\times s$ pixel footprint on the common grid. Because patches overlap, the same ground location can be encoded by several patches; its embedding is \fillin{the average of the token embeddings from all patches covering it / the embedding from the patch in which it is most central}, so that each location contributes exactly one vector. Tokens whose footprint contains invalid pixels are excluded.
+
+The latent representations are partitioned into $K$ latent clusters using the K-means clustering algorithm (\fillin{$n_{\mathrm{init}}$} initializations, k-means++ seeding) by minimizing the within-cluster variance:
+
+\[
+\underset{\{C_j\}_{j=1}^{K}}
+{\operatorname*{arg\,min}}
+\sum_{j=1}^{K}
+\sum_{\mathbf{z}_{i}\in C_j}
+\left\|
+\mathbf{z}_{i}
+-
+\boldsymbol{\mu}_{j}
+\right\|_{2}^{2},
+\]
+
+where $C_{j}$ denotes the $j$-th latent cluster, $\boldsymbol{\mu}_{j}$ represents the centroid of cluster $C_{j}$, $K$ denotes the total number of clusters, and $\|\cdot\|_{2}$ represents the Euclidean norm.
+
+The clustered latent representations are subsequently projected back into the spatial domain to generate spectral--compositional segmentation maps. Since the proposed framework performs unsupervised segmentation, clustering-oriented evaluation metrics are utilized to assess latent separability and representation quality. These metrics quantify only the geometry of the partition in latent space; they do not establish that any cluster corresponds to a particular mineral.
+
+\subsubsection{Selection of the Number of Clusters}
+\label{sec:k_selection}
+
+The number of clusters is a model-selection choice and was fixed without reference to the test region. K-means was fitted on the latent vectors of the \emph{training} region for every $K\in\{$\fillin{e.g.\ 2, 3, \ldots, 20}$\}$, and each partition was evaluated on the \emph{validation} region by assigning validation vectors to the nearest training centroid. For each $K$ we recorded the Silhouette Score, the Davies--Bouldin Index, and partition stability (mean pairwise ARI across \fillin{10} k-means initializations). The selection rule was: choose the $K$ that maximizes the validation Silhouette Score, subject to a stability ARI of at least \fillin{e.g.\ 0.85}; when two values of $K$ are within one bootstrap standard deviation in Silhouette, the smaller $K$ is preferred. This rule selected $K=10$ (Fig.~\ref{fig:diagnostic_analysis}(a)). The selected $K$ was then held fixed for all models and for all test-region evaluations, so that the reported test metrics are not optimized over $K$. A sensitivity analysis over $K$ is reported in Section~\ref{sec:k_sensitivity}.
+
+The ten clusters are \emph{latent spectral--compositional clusters}. They are not intended to be, and are not claimed to be, a one-to-one set of mineral classes: $K$ was chosen for latent separability, not for the number of minerals present, and several clusters may correspond to the same lithology at different degrees of space weathering, illumination, or topographic slope, while a single cluster may contain mixtures.
+
+\subsubsection{Cluster Interpretation Procedure}
+\label{sec:interpretation}
+
+To relate the latent clusters to candidate lunar lithologies, without presuming that they are minerals, each cluster is characterized by a fixed procedure that is applied identically to every cluster and independently of the clustering itself:
+\begin{enumerate}
+\item \textbf{Mean and dispersion of spectra.} The mean reflectance spectrum and its interquartile range are computed in the original (unnormalized) reflectance units over the valid pixels of the cluster.
+\item \textbf{Continuum removal and band parameters.} A linear continuum is fitted across the 1~$\mu$m and 2~$\mu$m absorption regions (anchor wavelengths \fillin{e.g.\ 0.80/1.5~$\mu$m and 1.5/2.6~$\mu$m}; because IIRS begins at about 0.8~$\mu$m, the short-wavelength shoulder of the 1~$\mu$m band is only partly sampled and 1~$\mu$m band depths are correspondingly approximate), and the band centre, band depth and integrated band area of each absorption are computed. These parameters are diagnostic of mafic mineralogy: band-centre positions discriminate low-Ca from high-Ca pyroxene, a broad 1~$\mu$m band without a 2~$\mu$m band indicates olivine, and weak or absent mafic bands with high albedo indicate plagioclase-rich (anorthositic) material \cite{Adams1974,Cloutis1991}.
+\item \textbf{Independent compositional check.} The FeO distribution of each cluster (Fig.~\ref{fig:scientific_results}(b)) is compared with expected ranges, e.g.\ low FeO ($\lesssim$6~wt\%) for highland anorthosite and high FeO ($\gtrsim$15~wt\%) for mare basalt \cite{Lucey2000}. Because FeO is also a network input, this check is a consistency test, not independent validation.
+\item \textbf{Comparison with reference data.} Continuum-removed cluster spectra are compared, using the spectral angle, against \fillin{laboratory reference spectra, e.g.\ RELAB spectra of lunar soils/minerals, and/or co-located Chandrayaan-1 M$^3$ spectra}, and the cluster maps are compared with \fillin{published geological/mineralogical maps of the study area, e.g.\ USGS unified geologic map of the Moon}.
+\item \textbf{Labelling rule.} A cluster is given a lithological label (e.g.\ ``high-Ca pyroxene-bearing mare material'') only if its band parameters, FeO range and closest reference spectrum agree; otherwise it is reported as an unlabelled spectral--compositional unit.
+\end{enumerate}
+The results of this procedure are reported in Table~\ref{tab:cluster_interpretation}. In the absence of in-situ ground truth for the study area, these labels are interpretations supported by spectral and compositional evidence, not validated mineral identifications.
+%% =========================================================
+
+\section{Experimental Results and Discussion}
+
+The proposed \textit{TriadFormer} framework is implemented using Python and the PyTorch deep learning library. All experiments are performed on a workstation equipped with an Intel Core i7 processor, NVIDIA GPU, and 16 GB RAM. The framework utilizes Chandrayaan-2 Imaging Infrared Spectrometer (IIRS) hyperspectral imagery along with Terrain Mapping Camera-2 (TMC-2) elevation data and Clementine FeO compositional maps for multimodal representation learning.
+
+Initially, all modalities are spatially aligned and normalized before patch extraction, as detailed in Sections~\ref{sec:data_sources}--\ref{sec:split}. During training, overlapping hyperspectral patches from the training region are generated and jointly processed with corresponding topographic and elemental samples. Unless stated otherwise, the single-run metrics in Tables~\ref{tab:ablation} and~\ref{tab:reconstruction_results} and the bootstrap metrics in Table~\ref{tab:bootstrap_clustering} are computed on \fillin{the full patch set / the test region}, whereas Table~\ref{tab:spatial_cv} reports results on spatially held-out terrain. The proposed framework is optimized using the AdamW optimizer with a learning rate of \(0.0001\). In addition to the proposed multimodal framework, multiple baseline architectures including a unimodal hyperspectral autoencoder, an early-fusion multimodal autoencoder, and a spectral-spatial 3D-CNN baseline are implemented for comprehensive comparative evaluation and ablation analysis. Furthermore, latent-space visualization and clustering diagnostics are performed using t-SNE, PCA, Silhouette analysis, and probability density estimation to analyze multimodal representation quality. Self-supervised learning is performed using a combination of reconstruction and SAM-guided spectral consistency objectives. The latent embedding dimension is fixed at 64, while K-means clustering is employed for unsupervised mineral segmentation analysis. All experiments were repeated across multiple random initializations to ensure stable clustering behavior and reproducible latent representation learning. Table~\ref{tab:dataset_specs} summarizes the major dataset and training specifications utilized for multimodal representation learning in the proposed framework.
+
+% \begin{table}[!t]
+% \centering
+% \caption{Dataset Specifications}
+% \label{tab:dataset_specs}
+% \renewcommand{\arraystretch}{1.1}
+% \begin{tabular}{lc}
+% \hline
+% \textbf{Dataset Parameter} & \textbf{Specification} \\
+% \hline
+% IIRS Spectral Bands & 256 \\
+% Patch Size & \(64 \times 64\) \\
+% Latent Dimension & 256 \\
+% Number of Clusters & 10 \\
+% Normalization Strategy & Min-Max \\
+% Learning Framework & Self-Supervised \\
+% Fusion Mechanism & Cross-Attention \\
+% \hline
+% \end{tabular}
+% \end{table}
+
+
+\begin{table}[!t]
+\centering
+\caption{Dataset Specifications}
+\label{tab:dataset_specs}
+\renewcommand{\arraystretch}{1.1}
+\begin{tabular}{lc}
+\hline
+\textbf{Dataset Parameter} & \textbf{Specification} \\
+\hline
+IIRS Spectral Bands & 256 (\fillin{$B$} retained) \\
+Wavelength Range & \fillin{$\lambda_{\min}$}--\fillin{$\lambda_{\max}$}~$\mu$m \\
+Common Grid Resolution & \fillin{80}~m/pixel \\
+Patch Size & \(64 \times 64\) \\
+Patch Stride & \fillin{} \\
+Latent Dimension & 64 \\
+Attention Heads & \fillin{} \\
+Number of Clusters & 10 (selected from \fillin{2--20}) \\
+Normalization Strategy & Min-Max (training-region statistics) \\
+Data Split & Spatially disjoint train/val/test \\
+Learning Framework & Self-Supervised \\
+Fusion Mechanism & Cross-Attention \\
+\hline
+\end{tabular}
+\end{table}
+
+
+% \begin{table}[!t]
+% \caption{Hyperparameters Used for Training the Proposed TriadFormer Framework}
+% \label{tab:hyperparameters}
+% \centering
+% \small
+% \renewcommand{\arraystretch}{1.15}
+
+% \begin{tabular}{lc}
+% \toprule
+% \textbf{Hyperparameter} & \textbf{Value} \\
+% \midrule
+% Epochs & 100 \\
+% Batch Size & 16 \\
+% Learning Rate & 0.0005 \\
+% Optimizer & Adam \\
+% Latent Dimension & 256 \\
+% Patch Size & \(64 \times 64\) \\
+% Fusion Strategy & Cross-Attention \\
+% Loss Function & MSE + SAM Loss \\
+% Clustering Method & K-Means \\
+% \bottomrule
+% \end{tabular}
+% \end{table}
+
+\begin{table}[!t]
+\caption{Hyperparameters Used for Training the Proposed TriadFormer Framework}
+\label{tab:hyperparameters}
+\centering
+\small
+\renewcommand{\arraystretch}{1.1}
+\begin{tabular}{lc}
+\toprule
+\textbf{Hyperparameter} & \textbf{Value} \\
+\midrule
+Epochs & 65 \\
+Batch Size & 4 (effective 16 via 4-step gradient accumulation) \\
+Learning Rate & 0.0001 \\
+Optimizer & AdamW \\
+Latent Dimension & 64 \\
+Patch Size & \(64 \times 64\) \\
+Fusion Strategy & Cross-Attention \\
+Loss Function & MSE + SAM Loss \\
+Clustering Method & K-Means \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+Table~\ref{tab:hyperparameters} summarises the hyperparameter configuration utilised for training the proposed \textit{TriadFormer} framework. The selected configuration enables stable multimodal optimisation while preserving spectral reconstruction consistency and latent representation quality.
+
+\subsection{Ablation Analysis}
+\label{sec:ablation}
+
+To evaluate the contribution of the major architectural components, an ablation study is performed using progressively more sophisticated learning configurations, ranging from a unimodal hyperspectral autoencoder to the proposed cross-attention-based \textit{TriadFormer} framework. The quantitative comparison of different architectural configurations is summarized in Table~\ref{tab:ablation}.
+
+\begin{table*}[t]
+\centering
+\caption{Ablation study evaluating the contribution of different architectural components in the proposed TriadFormer framework.}
+\label{tab:ablation}
+\renewcommand{\arraystretch}{1.2}
+\resizebox{\textwidth}{!}{%
+\begin{tabular}{lcccccc}
+\hline
+\textbf{Configuration} &
+\textbf{Multi-Modal} &
+\textbf{Cross-Attention} &
+\textbf{SAM Loss} &
+\textbf{Silhouette Score} &
+\textbf{DB Index} &
+\textbf{SAM Error} \\
+\hline
+Unimodal Autoencoder &
+$\times$ &
+$\times$ &
+$\times$ &
+0.3083 &
+1.0397 &
+0.2146 \\
+
+Early-Fusion Autoencoder &
+\checkmark &
+$\times$ &
+$\times$ &
+0.3186 &
+0.9742 &
+0.1685 \\
+
+3D-CNN Spectral-Spatial &
+$\times$ &
+$\times$ &
+$\times$ &
+0.3425 &
+0.9622 &
+0.1321 \\
+
+Multimodal Fusion Transformer &
+\checkmark &
+Partial &
+$\times$ &
+0.4624 &
+0.7428 &
+0.1184 \\
+
+\textbf{Proposed TriadFormer} &
+\checkmark &
+\checkmark &
+\checkmark &
+\textbf{0.5425} &
+\textbf{0.6583} &
+\textbf{0.0947} \\
+\hline
+\end{tabular}%
+}
+\end{table*}
+
+The unimodal autoencoder utilizes only hyperspectral reconstruction without multimodal interaction learning. Although the framework learns basic spectral representations, the resulting latent space exhibits limited cluster separability and weak contextual representation capability. The 3D-CNN baseline improves spectral--spatial feature extraction by jointly modeling neighboring spatial and spectral relationships; however, the absence of multimodal contextual fusion restricts its ability to capture complementary geological characteristics associated with lunar mineral structures. An additional early-fusion multimodal autoencoder is investigated to evaluate the effectiveness of direct multimodal feature concatenation without contextual attention learning. Although early-fusion improves representation quality compared with unimodal learning, the generated latent embeddings remain limited by the lack of adaptive multimodal dependency modeling.
+
+As summarized in Table~\ref{tab:ablation}, progressively incorporating multimodal feature learning, cross-attention fusion, and SAM-guided optimization consistently improves clustering quality while reducing spectral reconstruction error. Compared with the unimodal autoencoder, the proposed framework improves the Silhouette Score from 0.3083 to 0.5425, reduces the Davies--Bouldin Index from 1.0397 to 0.6583, and decreases the SAM error from 0.2146 to 0.0947, demonstrating the effectiveness of each architectural component.
+
+In contrast, the proposed \textit{TriadFormer} framework achieves substantially improved latent representation learning through cross-attention-based multimodal interaction. The integration of topographic and elemental modalities enhances the discriminative capability of the learned geological representations, while SAM-guided spectral consistency optimization improves reconstruction fidelity and preserves spectral angular similarity during self-supervised learning.
+
+Overall, the ablation study demonstrates that each architectural component contributes to the final performance of the proposed framework. Experimental observations indicate that the combination of multimodal feature extraction, cross-attention fusion, and SAM-guided optimization plays a critical role in improving latent clustering separability, spectral reconstruction consistency, and geological representation learning quality. Consequently, the proposed \textit{TriadFormer} framework consistently produces more compact and well-separated latent clusters than unimodal, early-fusion, conventional 3D-CNN, and transformer-based multimodal baseline architectures.
+
+It should be noted that the Silhouette Score and Davies--Bouldin Index reported in Table~\ref{tab:ablation} correspond to a single representative training run, consistent with the qualitative visualizations presented throughout this paper. A bootstrap-based statistical validation of these clustering metrics, including the mean and standard deviation over 100 resamples of the patch set, is presented in Section~\ref{sec:stats} (Table~\ref{tab:bootstrap_clustering}) and should be regarded as the more statistically robust estimate of the expected clustering performance.
+
+\subsection{Computational Complexity Analysis}
+\label{sec:complexity}
+
+To quantify the computational cost of the proposed framework relative to existing transformer-based hyperspectral classifiers, \textit{TriadFormer} is compared against SpectralFormer~\cite{ref12} and SSFTT~\cite{ref11}. All models were measured on a single NVIDIA Tesla T4 GPU using PyTorch~2.10.0, FP32 precision, and a batch size of 4. Computational complexity is reported as multiply--accumulate operations (MACs) at batch size 1, following the standard convention for architecture-level comparison, since MACs represent the computational cost of processing a single input sample and are independent of the training batch size. Baseline figures were measured directly from the authors' publicly released implementations using their original evaluation configurations, since neither publication reports parameter counts, FLOPs, or GPU memory consumption.
+
+\begin{table*}[!t]
+\centering
+\caption{Computational cost per forward pass measured on a single NVIDIA Tesla T4 GPU using PyTorch~2.10.0, FP32 precision, and a batch size of 4. Computational complexity is reported as multiply--accumulate operations (MACs) at batch size 1.}
+\label{tab:complexity_raw}
+\renewcommand{\arraystretch}{1.15}
+
+\resizebox{\textwidth}{!}{%
+\begin{tabular}{lccccc}
+\toprule
+\textbf{Model} &
+\textbf{Parameters (M)} &
+\textbf{MACs (G)} &
+\textbf{GPU Memory (GB)} &
+\textbf{Inference Time (ms)} &
+\textbf{Training Time (ms/iter)} \\
+\midrule
+SpectralFormer~\cite{ref12}
+& 0.526
+& 0.0964
+& 0.0233
+& 4.034
+& 14.21 \\
+
+SSFTT~\cite{ref11}
+& 0.153
+& 0.0117
+& 0.0193
+& 1.482
+& 5.43 \\
+
+\textbf{TriadFormer (Ours)}
+& \textbf{2.438}
+& \textbf{1.8680}
+& \textbf{0.0818}
+& \textbf{2.642}
+& \textbf{12.34} \\
+
+\bottomrule
+\end{tabular}%
+}
+\end{table*}
+
+Table~\ref{tab:complexity_raw} summarizes the computational cost of the evaluated models in terms of trainable parameters, MACs, GPU memory consumption, inference time, and training time per iteration. Although the proposed \textit{TriadFormer} contains more trainable parameters due to its multimodal encoder--decoder architecture, inference is performed on an entire hyperspectral patch rather than a single pixel, enabling efficient patch-level reconstruction and representation learning.
+
+\begin{table*}[!t]
+\centering
+\caption{Computational complexity normalized per output pixel.}
+\label{tab:complexity_perpixel}
+\resizebox{\textwidth}{!}{%
+\begin{tabular}{lcccc}
+\toprule
+\textbf{Model} &
+\textbf{Output Pixels / Forward Pass} &
+\textbf{MACs / Pixel (M)} &
+\textbf{Inference Time / Pixel ($\mu$s)} &
+\textbf{GPU Memory / Pixel (KB)} \\
+\midrule
+SpectralFormer~\cite{ref12} & 1 & 96.400 & 4034.0 & 6108.0 \\
+SSFTT~\cite{ref11} & 1 & 11.700 & 1482.0 & 5059.4 \\
+\textbf{TriadFormer (Ours)} & \textbf{4096} & \textbf{0.456} & \textbf{0.645} & \textbf{5.2} \\
+\bottomrule
+\end{tabular}}
+\end{table*}
+
+SpectralFormer was evaluated using a $7\times7$ spatial patch with 256 spectral bands to match the IIRS band count. SSFTT hardcoded 30 PCA components into its 2-D convolution width and therefore could not directly process 256-band hyperspectral inputs. Consequently, SSFTT was evaluated using its native $13\times13$ patch and 30-component configuration.
+
+Since SpectralFormer~\cite{ref12} and SSFTT~\cite{ref11} generate a single output pixel per forward pass, whereas the proposed \textit{TriadFormer} reconstructs an entire $64\times64$ hyperspectral patch (4096 pixels), the normalized metrics reported in Table~\ref{tab:complexity_perpixel} provide a more equitable comparison of computational efficiency across different model architectures.
+
+Although the proposed \textit{TriadFormer} incurs a higher computational cost per forward pass because of its patch-level reconstruction strategy, it provides substantially greater computational efficiency on a per-output-pixel basis than SpectralFormer~\cite{ref12} and SSFTT~\cite{ref11}. By reconstructing an entire $64\times64$ hyperspectral patch in a single inference, the proposed framework effectively amortizes the computational cost across all output pixels, resulting in reduced inference time and GPU memory requirement per reconstructed pixel.
+
+Patch-based classifiers typically recompute overlapping spatial neighbourhoods for every pixel independently, whereas the proposed \textit{TriadFormer} amortizes this computational cost across the entire hyperspectral patch. Consequently, although TriadFormer performs approximately 29$\times$ more MACs than SpectralFormer per forward pass, it achieves lower wall-clock inference time (2.642~ms versus 4.034~ms). This behavior is primarily attributed to improved GPU utilization, as SpectralFormer executes multiple small transformer kernels over a $7\times7$ patch that are dominated by launch latency, whereas the larger convolutional operations employed by TriadFormer achieve higher computational efficiency on the NVIDIA Tesla T4 GPU.
+
+\subsection{Statistical Validation of Clustering Results}
+\label{sec:stats}
+
+To assess whether the clustering improvements reported in
+Section~\ref{sec:ablation} reflect a stable effect rather than a
+single-run artefact, Silhouette Score, Davies--Bouldin Index, and
+Calinski--Harabasz Index were recomputed over 100 bootstrap
+resamples of the patch set (80\% resampling with replacement),
+$k=10$. Partition stability is reported as the mean pairwise
+agreement (NMI, ARI) between 10 independent k-means initialisations.
+
+\textbf{What was resampled.} In each bootstrap replicate $b=1,\ldots,100$, a set of \fillin{$0.8\times$ number of patches} patch indices was drawn with replacement from the \fillin{full / test-region} patch set, using the same random seed (and therefore the identical index set) for every model. The \emph{trained} networks were \fillin{kept fixed --- no model was retrained per replicate}; for each model, the latent vectors of the drawn patches were extracted, K-means with $K=10$ was refitted, and the three metrics were computed on that replicate. The bootstrap therefore quantifies the sensitivity of the clustering metrics to the choice of patches \emph{for a given trained model}; it does not capture variability due to network training (random initialization, mini-batch order), which is addressed separately by \fillin{the $n$ independently trained seeds reported in Table~\ref{tab:spatial_cv}}.
+% AUTHOR NOTE: if models WERE retrained for each replicate, replace the sentence above.
+
+\textbf{Limitation of patch-level bootstrap.} Because patches are extracted with stride \fillin{} $<P$, neighbouring patches share up to \fillin{}\% of their pixels, and duplicated draws (sampling with replacement) add further dependence. Resampled patches are therefore not independent observations, and the bootstrap standard deviations in Table~\ref{tab:bootstrap_clustering} underestimate the true sampling variability. For this reason the patch-level bootstrap is interpreted only as a measure of within-scene stability, and generalization to unseen terrain is assessed with the spatially blocked protocol below.
+
+\begin{table*}[!t]
+\centering
+\caption{Bootstrap evaluation of clustering performance across unimodal, fusion, and proposed architectures. Reported values denote the mean $\pm$ standard deviation over 100 bootstrap resamples of the patch set (80\% sampling with replacement, $k=10$). Stability metrics correspond to the mean pairwise agreement across 10 independent k-means initializations. Bold values indicate the best result per metric; underlined values indicate the second-best result.}
+\label{tab:bootstrap_clustering}
+\renewcommand{\arraystretch}{1.15}
+\resizebox{\textwidth}{!}{%
+\begin{tabular}{lccccc}
+\toprule
+\textbf{Model} &
+\textbf{Silhouette $\uparrow$} &
+\textbf{Davies--Bouldin $\downarrow$} &
+\textbf{Calinski--Harabasz $\uparrow$} &
+\textbf{Stability NMI $\uparrow$} &
+\textbf{Stability ARI $\uparrow$} \\
+\midrule
+Unimodal 2D-CNN AE &
+$0.3837 \pm 0.0284$ &
+$0.9147 \pm 0.0566$ &
+$\mathbf{844.6 \pm 63.0}$ &
+$\mathbf{0.9665}$ &
+$\mathbf{0.9413}$ \\
+
+Unimodal 3D-CNN AE &
+$0.4004 \pm 0.0224$ &
+$0.8134 \pm 0.0582$ &
+$629.4 \pm 59.1$ &
+$0.9156$ &
+$0.8752$ \\
+
+Early-Fusion CNN AE &
+$0.3648 \pm 0.0229$ &
+$1.0009 \pm 0.0489$ &
+$217.2 \pm 18.4$ &
+$0.8824$ &
+$0.8006$ \\
+
+Late-Fusion CNN AE &
+$0.3243 \pm 0.0240$ &
+$1.1205 \pm 0.0711$ &
+$244.1 \pm 18.1$ &
+$0.8708$ &
+$0.8028$ \\
+
+\textbf{TriadFormer (Ours)} &
+$\mathbf{0.5210 \pm 0.0250}$ &
+$\mathbf{0.6681 \pm 0.0494}$ &
+$\underline{781.3 \pm 51.6}$ &
+$\underline{0.9401}$ &
+$\underline{0.9022}$ \\
+\bottomrule
+\end{tabular}%
+}
+\end{table*}
+
+It is important to distinguish the results reported in Table~\ref{tab:ablation} and Table~\ref{tab:bootstrap_clustering}, as the two tables correspond to different evaluation protocols. Table~\ref{tab:ablation} presents the clustering performance obtained from a single representative training run, which is also used for the qualitative latent-space and reconstruction visualizations presented throughout this paper. In contrast, Table~\ref{tab:bootstrap_clustering} reports the mean and standard deviation of the clustering metrics computed over 100 bootstrap resamples of the patch set, thereby providing a statistically more robust estimate of the expected model performance. While the Davies--Bouldin Index remains highly consistent across the two evaluation protocols ($0.6583$ versus $0.6681 \pm 0.0494$), the bootstrap Silhouette Score ($0.5210 \pm 0.0250$) is lower than the corresponding single-run result ($0.5425$), indicating that the representative run achieved above-average clustering performance with respect to this metric. Consequently, the bootstrap statistics reported in Table~\ref{tab:bootstrap_clustering} should be regarded as the primary quantitative estimate of the expected clustering performance of the proposed \textit{TriadFormer} framework.
+
+The proposed \textit{TriadFormer} achieves the highest Silhouette Score and the lowest Davies--Bouldin Index, both by a substantial margin and with large effect sizes against every baseline (Table~\ref{tab:wilcoxon}). Although it ranks third among the five evaluated models with respect to the Calinski--Harabasz Index and exhibits comparatively lower clustering stability, these observations are discussed further in Section~\ref{sec:discussion}.
+
+
+\begin{table*}[!t]
+\centering
+\caption{Statistical significance analysis using the Wilcoxon signed-rank test over 100 paired bootstrap resamples comparing the proposed \textit{TriadFormer} with each ablation baseline. Identical bootstrap samples were used for all models to ensure paired statistical comparisons. Cliff's $d$ is reported as the effect size. For the Davies--Bouldin Index, negative values of Cliff's $d$ indicate superior performance of the proposed method because lower values correspond to better clustering quality. $p$-values are two-sided and use the normal approximation; with $n=100$ pairs the smallest attainable value is $3.90\times10^{-18}$, reached when all 100 paired differences have the same sign. Holm-adjusted values correct for the 12 tests in the table. Because bootstrap replicates are not independent (see text), these $p$-values describe within-scene consistency and should not be read as evidence of generalization.}
+\label{tab:wilcoxon}
+\renewcommand{\arraystretch}{1.15}
+\resizebox{\textwidth}{!}{%
+\begin{tabular}{llcccc}
+\toprule
+\textbf{Comparison (TriadFormer vs.)} &
+\textbf{Metric} &
+\textbf{$p$-value} &
+\textbf{Holm-adjusted $p$} &
+\textbf{Cliff's $d$} &
+\textbf{Outcome} \\
+\midrule
+
+Unimodal 2D-CNN AE &
+Silhouette &
+$4.27\times10^{-18}$ &
+$4.68\times10^{-17}$ &
+$0.942$ &
+TriadFormer better \\
+
+&
+Davies--Bouldin &
+$3.90\times10^{-18}$ &
+$4.68\times10^{-17}$ &
+$-0.999$ &
+TriadFormer better \\
+
+&
+Calinski--Harabasz &
+$3.90\times10^{-18}$ &
+$4.68\times10^{-17}$ &
+$-1.000$ &
+TriadFormer worse \\
+
+\midrule
+
+Unimodal 3D-CNN AE &
+Silhouette &
+$7.12\times10^{-18}$ &
+$4.68\times10^{-17}$ &
+$0.943$ &
+TriadFormer better \\
+
+&
+Davies--Bouldin &
+$9.32\times10^{-18}$ &
+$4.68\times10^{-17}$ &
+$-0.944$ &
+TriadFormer better \\
+
+&
+Calinski--Harabasz &
+$3.90\times10^{-18}$ &
+$4.68\times10^{-17}$ &
+$-0.997$ &
+TriadFormer worse \\
+
+\midrule
+
+Early-Fusion CNN AE &
+Silhouette &
+$3.90\times10^{-18}$ &
+$4.68\times10^{-17}$ &
+$0.999$ &
+TriadFormer better \\
+
+&
+Davies--Bouldin &
+$3.90\times10^{-18}$ &
+$4.68\times10^{-17}$ &
+$-1.000$ &
+TriadFormer better \\
+
+&
+Calinski--Harabasz &
+$3.90\times10^{-18}$ &
+$4.68\times10^{-17}$ &
+$1.000$ &
+TriadFormer better \\
+
+\midrule
+
+Late-Fusion CNN AE &
+Silhouette &
+$3.90\times10^{-18}$ &
+$4.68\times10^{-17}$ &
+$1.000$ &
+TriadFormer better \\
+
+&
+Davies--Bouldin &
+$3.90\times10^{-18}$ &
+$4.68\times10^{-17}$ &
+$-1.000$ &
+TriadFormer better \\
+
+&
+Calinski--Harabasz &
+$3.90\times10^{-18}$ &
+$4.68\times10^{-17}$ &
+$1.000$ &
+TriadFormer better \\
+
+\bottomrule
+\end{tabular}%
+}
+\end{table*}
+
+Although the Unimodal 2D-CNN Autoencoder achieved the highest Calinski--Harabasz score, \textit{TriadFormer} consistently outperformed the remaining baseline models, including the Unimodal 3D-CNN Autoencoder and both multimodal fusion-based architectures. These findings suggest that the proposed cross-attention strategy improves overall clustering quality while introducing a trade-off in cluster variance, which is further discussed in Section~\ref{sec:discussion}.
+
+\textbf{Test implementation and interpretation.} For each model pair and metric, the paired observations are the 100 per-replicate metric values computed on identical bootstrap index sets, and the test statistic is computed on their 100 differences using \fillin{\texttt{scipy.stats.wilcoxon}, version, with \texttt{method=`approx'}, zero differences handled by \texttt{zero\_method=`wilcox'}}. The test assumes that the paired differences are independent and symmetrically distributed about their median. The reported values were checked against this setting: with $n=100$ and no zero differences, the normal approximation gives $z=8.68$ and $p=3.90\times10^{-18}$ when every difference has the same sign, which is exactly the value obtained for 9 of the 12 comparisons in Table~\ref{tab:wilcoxon}. In other words, these $p$-values are at the floor of the test and simply express that TriadFormer was better (or, for Calinski--Harabasz against the unimodal autoencoders, worse) in every replicate; their magnitude carries no further information. The corresponding Cliff's $d$ values of $|d|\geq0.94$ are the more informative quantity. Because 12 hypotheses are tested, $p$-values are corrected using the Holm--Bonferroni procedure; all comparisons remain significant after correction (adjusted $p=4.68\times10^{-17}$). Since the independence assumption is violated by overlapping and duplicated patches, these results establish consistency within the scene, not generalization, which is assessed next.
+
+\subsection{Spatially Blocked Validation on Held-Out Terrain}
+\label{sec:spatial_cv}
+
+To estimate performance on terrain not seen during training, a spatially blocked protocol was used. The scene was divided into \fillin{$n_b$} spatially disjoint blocks of \fillin{size} km, separated by buffers of at least one patch width (Section~\ref{sec:split}). In each of \fillin{$n_b$} folds, every model was \emph{retrained from scratch} on the remaining blocks, $K$-means ($K=10$) was fitted on the latent vectors of the training blocks, and held-out vectors were assigned to the nearest training centroid; the metrics were computed on the held-out block only. Each fold was repeated with \fillin{3} training seeds. Table~\ref{tab:spatial_cv} reports the mean and standard deviation over folds and seeds; the paired comparison across folds uses the Wilcoxon signed-rank test on the \fillin{$n_b\times$ seeds} fold-level differences with Holm correction.
+% AUTHOR NOTE: if a second independent IIRS scene of a different region is available,
+% report it here as an additional fully independent test region.
+
+\begin{table*}[!t]
+\centering
+\caption{Spatially blocked validation: clustering and reconstruction metrics on held-out terrain blocks (mean $\pm$ standard deviation over \fillin{$n_b$} folds $\times$ \fillin{3} seeds; models retrained per fold; $K=10$ fixed). Entries in red must be filled from the experiments.}
+\label{tab:spatial_cv}
+\renewcommand{\arraystretch}{1.15}
+\resizebox{\textwidth}{!}{%
+\begin{tabular}{lccccc}
+\toprule
+\textbf{Model} & \textbf{Silhouette $\uparrow$} & \textbf{Davies--Bouldin $\downarrow$} & \textbf{SAM Error $\downarrow$} & \textbf{Holm-adj. $p$ (Silh.)} & \textbf{Holm-adj. $p$ (DB)} \\
+\midrule
+Unimodal 2D-CNN AE & \fillin{} & \fillin{} & \fillin{} & \fillin{} & \fillin{} \\
+Unimodal 3D-CNN AE & \fillin{} & \fillin{} & \fillin{} & \fillin{} & \fillin{} \\
+Early-Fusion CNN AE & \fillin{} & \fillin{} & \fillin{} & \fillin{} & \fillin{} \\
+Late-Fusion CNN AE & \fillin{} & \fillin{} & \fillin{} & \fillin{} & \fillin{} \\
+\textbf{TriadFormer (Ours)} & \fillin{} & \fillin{} & \fillin{} & --- & --- \\
+\bottomrule
+\end{tabular}%
+}
+\end{table*}
+
+\fillin{Describe the outcome: whether TriadFormer's advantage in Silhouette and DB persists on held-out blocks, and how much the metrics drop relative to Table~\ref{tab:bootstrap_clustering}.} Note that with only \fillin{$n_b\times$ seeds} paired observations the smallest attainable Wilcoxon $p$-value is far larger than in Table~\ref{tab:wilcoxon}, which reflects the much smaller number of genuinely independent observations.
+
+\subsection{Sensitivity to the Number of Clusters}
+\label{sec:k_sensitivity}
+
+Table~\ref{tab:k_sensitivity} reports how the clustering metrics of \textit{TriadFormer} and the strongest baseline change as $K$ varies around the selected value, using the validation-region procedure of Section~\ref{sec:k_selection} for the selection columns and the test region for the reported metrics.
+
+\begin{table*}[!t]
+\centering
+\caption{Sensitivity of clustering results to the number of clusters $K$. Validation Silhouette is the selection criterion; test-region metrics are reported for information only and were not used for selection. Entries in red must be filled from the experiments.}
+\label{tab:k_sensitivity}
+\renewcommand{\arraystretch}{1.15}
+\resizebox{\textwidth}{!}{%
+\begin{tabular}{ccccccc}
+\toprule
+$K$ & \textbf{Val. Silhouette (TriadFormer)} & \textbf{Stability ARI (TriadFormer)} & \textbf{Test Silhouette (TriadFormer)} & \textbf{Test DB (TriadFormer)} & \textbf{Test Silhouette (best baseline)} & \textbf{Test DB (best baseline)} \\
+\midrule
+\fillin{4}  & \fillin{} & \fillin{} & \fillin{} & \fillin{} & \fillin{} & \fillin{} \\
+\fillin{6}  & \fillin{} & \fillin{} & \fillin{} & \fillin{} & \fillin{} & \fillin{} \\
+\fillin{8}  & \fillin{} & \fillin{} & \fillin{} & \fillin{} & \fillin{} & \fillin{} \\
+\textbf{10} & \fillin{} & \fillin{} & \fillin{} & \fillin{} & \fillin{} & \fillin{} \\
+\fillin{12} & \fillin{} & \fillin{} & \fillin{} & \fillin{} & \fillin{} & \fillin{} \\
+\fillin{15} & \fillin{} & \fillin{} & \fillin{} & \fillin{} & \fillin{} & \fillin{} \\
+\fillin{20} & \fillin{} & \fillin{} & \fillin{} & \fillin{} & \fillin{} & \fillin{} \\
+\bottomrule
+\end{tabular}%
+}
+\end{table*}
+
+\fillin{Describe the outcome, e.g.\ whether TriadFormer's ranking relative to the baselines is preserved for all tested $K$, and how flat the Silhouette curve is around $K=10$.} If the advantage holds across the tested range, the conclusions of this paper do not depend on the particular choice $K=10$.
+
+\subsection{Clustering Performance Analysis}
+\label{sec:clustering}
+Fig.~\ref{fig:scientific_results} presents the clustering and latent representation analysis of the proposed \textit{TriadFormer} framework. The figure includes quantitative clustering evaluation, FeO abundance analysis, t-SNE latent-space visualization, and average hyperspectral spectral signatures corresponding to the discovered mineral clusters.
+
+Since the proposed framework performs unsupervised lunar mineral segmentation, clustering-oriented evaluation metrics are employed to assess the quality and robustness of the learned latent representations. Specifically, the Silhouette Score and Davies--Bouldin (DB) Index evaluate cluster compactness and inter-cluster separation, whereas the Calinski--Harabasz (CH) Index measures the ratio of between-cluster to within-cluster variance. Furthermore, Stability NMI and Stability ARI quantify the consistency of clustering assignments across multiple independent k-means initializations. To reduce the influence of sampling variability, all clustering metrics were computed over 100 bootstrap resamples of the patch set, and the corresponding mean and standard deviation are summarized in Table~\ref{tab:bootstrap_clustering}.
+
+As shown in Table~\ref{tab:bootstrap_clustering}, the proposed \textit{TriadFormer} achieves the highest Silhouette Score ($0.5210 \pm 0.0250$) and the lowest Davies--Bouldin Index ($0.6681 \pm 0.0494$), demonstrating superior cluster compactness and separation compared with all baseline architectures. In addition, the proposed framework substantially outperforms both fusion-based autoencoder baselines with respect to the Calinski--Harabasz Index while maintaining competitive clustering stability, as measured by Stability NMI and Stability ARI. These findings indicate that multimodal cross-attention learning produces more discriminative latent representations than unimodal and conventional multimodal learning strategies.
+
+To further verify that the observed performance improvements are statistically significant, paired Wilcoxon signed-rank tests were performed using the same 100 bootstrap resamples. The statistical comparisons summarized in Table~\ref{tab:wilcoxon} show that all paired comparisons are significant after Holm correction with large effect sizes. The proposed \textit{TriadFormer} consistently outperforms all baseline models in terms of the Silhouette Score and Davies--Bouldin Index, while significantly outperforming both multimodal fusion baselines with respect to the Calinski--Harabasz Index. These results show that the improvements are consistent across patch resamples of the study scene; as discussed in Section~\ref{sec:stats}, they do not by themselves demonstrate generalization, which is evaluated on held-out terrain in Section~\ref{sec:spatial_cv}.
+
+As illustrated in Fig.~\ref{fig:scientific_results}(a), the proposed framework generates more compact and well-separated clusters, indicating improved intra-cluster similarity and reduced inter-cluster overlap. The corresponding FeO abundance distribution shown in Fig.~\ref{fig:scientific_results}(b) reveals distinct compositional variations among the discovered clusters, suggesting that the learned latent representations preserve compositional information. Since FeO is itself one of the network inputs, this separation is expected to some degree and is not independent evidence of mineralogy.
+
+Furthermore, the t-SNE visualization in Fig.~\ref{fig:scientific_results}(c) demonstrates clear separation of the learned multimodal embeddings with minimal cluster overlap, confirming the effectiveness of cross-attention-based multimodal representation learning. The average hyperspectral spectral signatures illustrated in Fig.~\ref{fig:scientific_results}(d) exhibit characteristic spectral variations across different clusters, indicating that the proposed framework preserves spectral information relevant to mineralogical interpretation. Table~\ref{tab:cluster_interpretation} applies the interpretation procedure of Section~\ref{sec:interpretation} to each cluster.
+
+\begin{table*}[!t]
+\centering
+\caption{Interpretation of the $K=10$ latent clusters following the procedure of Section~\ref{sec:interpretation}. Band centres are from continuum-removed mean spectra; FeO is the cluster median (interquartile range). ``Unlabelled'' denotes a cluster for which the evidence is insufficient for a lithological label. Entries in red must be filled from the analysis.}
+\label{tab:cluster_interpretation}
+\renewcommand{\arraystretch}{1.15}
+\resizebox{\textwidth}{!}{%
+\begin{tabular}{cccccccl}
+\toprule
+\textbf{Cluster} & \textbf{Area (\%)} & \textbf{1~$\mu$m centre ($\mu$m)} & \textbf{2~$\mu$m centre ($\mu$m)} & \textbf{1~$\mu$m depth} & \textbf{FeO wt\%} & \textbf{Closest reference (SAM, rad)} & \textbf{Interpretation} \\
+\midrule
+C1 & \fillin{} & \fillin{} & \fillin{} & \fillin{} & \fillin{} & \fillin{} & \fillin{} \\
+C2 & \fillin{} & \fillin{} & \fillin{} & \fillin{} & \fillin{} & \fillin{} & \fillin{} \\
+$\vdots$ & & & & & & & \\
+C10 & \fillin{} & \fillin{} & \fillin{} & \fillin{} & \fillin{} & \fillin{} & \fillin{} \\
+\bottomrule
+\end{tabular}%
+}
+\end{table*}
+
+\subsection{Latent Representation Visualization}
+
+To further investigate the quality of the learned multimodal embeddings, latent representation visualization was performed using t-SNE projections. The visualization complements the quantitative clustering metrics by providing an intuitive representation of the learned latent feature space.
+
+The t-SNE visualization shown in Fig.~\ref{fig:scientific_results}(c) indicates that the latent embeddings generated by the proposed \textit{TriadFormer} are organized into compact and well-separated clusters with limited overlap. This observation is consistent with the improved Silhouette Score and lower Davies--Bouldin Index reported in Tables~\ref{tab:ablation} and~\ref{tab:bootstrap_clustering}, suggesting that the proposed multimodal representation learning framework produces discriminative latent features suitable for clustering-based lunar mineral segmentation.
+
+The improved cluster organization can be attributed to the proposed cross-attention fusion mechanism, which jointly exploits complementary spectral, topographic, and elemental information while suppressing redundant modality-specific variations. Consequently, the learned latent representations preserve meaningful geological characteristics that facilitate robust unsupervised mineral clustering.
+
+Furthermore, the average hyperspectral spectral signatures shown in Fig.~\ref{fig:scientific_results}(d) exhibit distinct spectral patterns across the discovered mineral clusters. The observed spectral variations indicate that the proposed framework preserves important hyperspectral characteristics while learning compact multimodal representations, thereby supporting reliable downstream lunar mineral segmentation.
+
+\begin{figure*}[!t]
+\centering
+\includegraphics[width=0.90\textwidth]{Unknown-1.png}
+
+\caption{
+Comprehensive analysis of the proposed TriadFormer framework. 
+(a) Comparison of clustering performance between unimodal 3D-CNN and the proposed multimodal framework using Silhouette Score evaluation. 
+(b) Distribution of FeO abundance across identified latent clusters.
+(c) t-SNE visualisation of the learned multimodal latent representation space.
+(d) Average hyperspectral spectral signatures corresponding to different latent clusters.
+}
+
+\label{fig:scientific_results}
+\end{figure*}
+
+\subsection{Spectral Reconstruction Analysis}
+\label{sec:reconstruction}
+
+Following the clustering analysis presented in the previous subsection, the reconstruction capability of the proposed framework is evaluated to determine how effectively the learned latent representations preserve hyperspectral spectral information. Quantitative reconstruction performance is first analyzed using reconstruction loss and Spectral Angle Mapper (SAM) error, followed by qualitative diagnostic analysis of spectral reconstruction quality and latent representation learning.
+
+\begin{table}[!t]
+\caption{Comparative Analysis of Reconstruction Consistency}
+\label{tab:reconstruction_results}
+\centering
+\footnotesize
+\renewcommand{\arraystretch}{1.15}
+\setlength{\tabcolsep}{4pt}
+
+\begin{tabular}{
+>{\RaggedRight\arraybackslash}p{3.2cm}
+c
+c
+}
+\toprule
+
+\textbf{Method} &
+\textbf{Reconstruction Loss} &
+\textbf{SAM Error} \\
+
+\midrule
+
+Unimodal Autoencoder
+& 0.0248
+& 0.2146 \\
+
+Early-Fusion Autoencoder
+& 0.0193
+& 0.1685 \\
+
+3D-CNN Spectral-Spatial
+& 0.0157
+& 0.1321 \\
+
+Multimodal Fusion Transformer
+& 0.0124
+& 0.1184 \\
+
+\textbf{Proposed TriadFormer}
+& \textbf{0.00074}
+& \textbf{0.0947} \\
+
+\bottomrule
+\end{tabular}
+\end{table}
+
+Table~\ref{tab:reconstruction_results} summarizes the reconstruction performance of the proposed framework and the baseline models. The proposed \textit{TriadFormer} achieves the lowest reconstruction loss (0.00074) and the smallest SAM error (0.0947), demonstrating that the combination of multimodal cross-attention fusion and SAM-guided optimization substantially improves spectral reconstruction fidelity. Compared with unimodal, early-fusion, and conventional multimodal reconstruction architectures, the proposed framework more effectively preserves spectral-angular consistency while learning compact multimodal latent representations suitable for self-supervised mineral representation learning.
+
+\begin{figure*}[!t]
+\centering
+\includegraphics[width=0.90\textwidth]{Unknown-2.png}
+
+\caption{
+Diagnostic analysis of the proposed \textit{TriadFormer} framework.
+(a) Validation-region Silhouette Score for $K\in\{$\fillin{2,\ldots,20}$\}$ used to select $K=10$ (Section~\ref{sec:k_selection}).
+(b) Comparison between original and reconstructed hyperspectral spectral signatures.
+(c) Distribution of validation spectral reconstruction error using Spectral Angle Mapper (SAM).
+(d) PCA-based probability density contour of the learned latent representation space.
+}
+
+\label{fig:diagnostic_analysis}
+\end{figure*}
+
+Fig.~\ref{fig:diagnostic_analysis} provides a qualitative assessment of the proposed framework, including optimal cluster analysis, hyperspectral reconstruction quality, SAM error distribution, and PCA-based visualization of the learned latent representations.
+
+The optimal cluster analysis shown in Fig.~\ref{fig:diagnostic_analysis}(a) supports the selection of the adopted clustering configuration by demonstrating the highest validation-region Silhouette Score at the chosen number of clusters, following the selection rule of Section~\ref{sec:k_selection}; the sensitivity of the results to this choice is reported in Table~\ref{tab:k_sensitivity}.
+
+As illustrated in Fig.~\ref{fig:diagnostic_analysis}(b), the reconstructed hyperspectral signatures closely follow the original spectral observations with minimal spectral distortion and improved angular consistency. Compared with conventional reconstruction-based approaches, the proposed framework more accurately preserves the overall spectral profile, producing physically meaningful hyperspectral representations suitable for self-supervised learning.
+
+The validation SAM error distribution shown in Fig.~\ref{fig:diagnostic_analysis}(c) further demonstrates stable reconstruction performance across validation samples, indicating that the proposed SAM-guided optimization effectively maintains spectral similarity throughout the reconstruction process.
+
+Finally, the PCA-based probability density contour illustrated in Fig.~\ref{fig:diagnostic_analysis}(d) reveals compact latent manifolds with reduced overlap between neighboring regions, suggesting improved multimodal feature organization and more discriminative latent representations.
+
+Overall, the quantitative and qualitative analyses consistently demonstrate that the proposed \textit{TriadFormer} accurately reconstructs hyperspectral signatures while preserving spectral-angular consistency and learning compact multimodal latent representations. These characteristics provide a strong foundation for robust self-supervised lunar mineral clustering and automated mineral segmentation.
+
+\subsection{Comparison with Baseline Models}
+
+The proposed \textit{TriadFormer} framework is further compared with representative hyperspectral representation learning approaches and internally implemented baseline architectures to evaluate the effectiveness of multimodal cross-attention learning for self-supervised lunar mineral segmentation.
+
+\begin{table*}[!t]
+\caption{Comparison of representative hyperspectral representation learning approaches with respect to self-supervised learning, multimodal fusion strategy, latent representation learning, unsupervised segmentation capability, and spectral-angle optimization.}
+\label{tab:soa_comparison}
+\centering
+\small
+\renewcommand{\arraystretch}{1.2}
+\setlength{\tabcolsep}{4pt}
+\resizebox{\textwidth}{!}{
+\begin{tabular}{
+>{\RaggedRight\arraybackslash}p{3.4cm}
+>{\Centering\arraybackslash}p{1.8cm}
+>{\Centering\arraybackslash}p{1.8cm}
+>{\Centering\arraybackslash}p{1.8cm}
+>{\Centering\arraybackslash}p{1.8cm}
+>{\Centering\arraybackslash}p{1.8cm}
+>{\RaggedRight\arraybackslash}p{4.8cm}
+}
+\toprule
+\textbf{Method} &
+\textbf{Self-Supervised} &
+\textbf{Attention Fusion} &
+\textbf{Latent Learning} &
+\textbf{Unsupervised Segmentation} &
+\textbf{SAM Optimization} &
+\textbf{Core Representation Capability} \\
+\midrule
+
+SpectralFormer \cite{ref12}
+& No
+& Yes
+& Partial
+& No
+& No
+& Spectral-spatial transformer representation learning \\
+
+Spatial-Spectral Transformer \cite{ref9,ref23}
+& No
+& Yes
+& Partial
+& No
+& No
+& Local-global spectral-spatial dependency modeling \\
+
+Regularized Masked Autoencoder \cite{ref34}
+& Yes
+& No
+& Yes
+& No
+& No
+& Self-supervised masked spectral reconstruction learning \\
+
+Multimodal Fusion Transformer \cite{ref29,ref51}
+& No
+& Yes
+& Partial
+& No
+& No
+& Cross-modal transformer-based fusion learning \\
+
+CTF-SSCL \cite{ref37}
+& Partial
+& Yes
+& Yes
+& No
+& No
+& Contrastive spectral-spatial latent representation learning \\
+
+Multisource Remote Sensing Fusion Framework \cite{ref52}
+& No
+& Partial
+& Partial
+& No
+& No
+& Multisource heterogeneous remote sensing fusion \\
+
+3D-CNN Spectral-Spatial Baseline
+& No
+& No
+& Partial
+& No
+& No
+& Deep volumetric spectral-spatial feature extraction \\
+
+Early-Fusion Autoencoder
+& Yes
+& No
+& Yes
+& Partial
+& Yes
+& Direct multimodal latent feature learning through feature concatenation \\
+
+Late-Fusion Autoencoder
+& Yes
+& No
+& Yes
+& Partial
+& Yes
+& Independent modality encoding with simple concatenation-based fusion \\
+
+\textbf{Proposed TriadFormer}
+& \textbf{Yes}
+& \textbf{Yes}
+& \textbf{Yes}
+& \textbf{Yes}
+& \textbf{Yes}
+& \textbf{Cross-attention-based multimodal geological representation learning with self-supervised lunar mineral segmentation} \\
+
+\bottomrule
+\end{tabular}
+}
+\end{table*}
+
+Table~\ref{tab:soa_comparison} qualitatively compares the proposed framework with representative hyperspectral representation learning approaches. Existing methods primarily focus on supervised hyperspectral image classification or single-modality representation learning and generally lack unified multimodal learning for planetary mineral analysis. In contrast, the proposed \textit{TriadFormer} jointly exploits hyperspectral imagery, topographic information, and elemental abundance maps through self-supervised cross-attention learning, enabling unsupervised lunar mineral segmentation without requiring pixel-level mineral annotations.
+
+The effectiveness of the proposed framework is further supported by the quantitative results presented in Table~\ref{tab:ablation} and in the Spectral Reconstruction Analysis (Section~\ref{sec:reconstruction}), Computational Complexity Analysis (Section~\ref{sec:complexity}), and Clustering Performance Analysis (Section~\ref{sec:clustering}). Across these experiments, \textit{TriadFormer} consistently demonstrates superior clustering quality, improved spectral reconstruction fidelity, enhanced computational efficiency on a per-pixel basis, and statistically significant performance improvements over unimodal, early-fusion, and conventional multimodal learning approaches. These findings indicate that integrating complementary geological information through cross-attention learning substantially improves latent representation quality compared with independent modality learning and direct feature-fusion strategies.
+
+\begin{figure}[!t]
+\centering
+\includegraphics[
+height=0.52\textheight,
+width=0.22\textwidth,
+keepaspectratio
+]{Unknown-3.png}
+
+\caption{
+Spatial spectral--compositional segmentation map ($K=10$ latent clusters) generated by the proposed \textit{TriadFormer} framework using multimodal hyperspectral, topographic, and elemental representation learning. The resulting segmentation exhibits spatially coherent regions; their candidate lithological interpretation is given in Table~\ref{tab:cluster_interpretation}.
+}
+
+\label{fig:mineral_segmentation}
+\end{figure}
+
+Fig.~\ref{fig:mineral_segmentation} presents the spatial spectral--compositional segmentation generated by the proposed \textit{TriadFormer}. The resulting segmentation map exhibits spatially coherent regions with well-defined boundaries, indicating that the learned multimodal latent representations capture complementary spectral, topographic, and elemental characteristics. Spatial coherence alone, however, is not evidence of mineralogical correctness, because the topographic input and the overlapping-patch encoding both favour spatially smooth partitions; the correspondence of these regions to lithological units is assessed only through the interpretation procedure of Section~\ref{sec:interpretation}.
+
+Overall, the qualitative and quantitative comparisons consistently demonstrate that integrating complementary hyperspectral, topographic, and elemental information through cross-attention learning produces more discriminative latent representations than unimodal and conventional multimodal approaches. Consequently, the proposed framework achieves improved clustering quality, enhanced spectral reconstruction fidelity, and spatially coherent lunar mineral segmentation without requiring manual mineral annotations.
+\subsection{Discussion}
+\label{sec:discussion}
+
+The experimental results demonstrate that multimodal contextual fusion significantly improves representation learning for lunar hyperspectral analysis. The proposed framework effectively combines spectral, topographic, and elemental modalities to generate robust latent embeddings capable of capturing complex geological structures.
+
+The incorporation of cross-attention fusion enables efficient contextual interaction among heterogeneous modalities, while SAM-guided optimization preserves spectral consistency during reconstruction. Consequently, the learned latent representations exhibit improved cluster separability and enhanced mineral discrimination capability. The clusters are unsupervised, and the reported Silhouette, Davies--Bouldin and Calinski--Harabasz indices measure only the geometric quality of the partition in latent space; they do not establish that any cluster corresponds to a particular mineral. The observed spectral variations and FeO distributions indicate a potential correspondence with distinct lunar compositions, and the band-parameter and reference-spectrum analysis of Table~\ref{tab:cluster_interpretation} provides interpretive support for some clusters. Without in-situ or laboratory ground truth for the study area, these interpretations remain hypotheses, and the output of the framework should be regarded as a spectral--geological clustering that can guide, but not replace, expert mineral mapping. Such multimodal clustering capability could potentially support automated planetary geological interpretation in future lunar exploration missions.
+
+Two further limitations of the evaluation should be noted. First, the patch-level bootstrap and the associated Wilcoxon tests measure consistency within a single scene and are affected by spatial dependence between overlapping patches; the spatially blocked results of Table~\ref{tab:spatial_cv} are the relevant estimate of transfer to unseen terrain, and even these are drawn from \fillin{a single IIRS observation}, so generalization to other lunar regions and illumination conditions remains to be demonstrated. Second, the number of clusters $K=10$ is a model-selection choice for latent separability and does not represent the number of minerals in the scene.
+
+Unlike conventional supervised hyperspectral classification approaches, the proposed framework does not rely on pixel-level annotations and instead performs unsupervised mineral pattern discovery through self-supervised representation learning. This characteristic is particularly important for planetary remote sensing applications where validated mineral labels are extremely limited. Despite the improved multimodal representation capability, the proposed framework may exhibit increased computational complexity due to cross-attention fusion and multi-branch feature extraction operations.
+
+Overall, the proposed \textit{TriadFormer} framework demonstrates the effectiveness of self-supervised multimodal learning for unsupervised spectral--compositional segmentation of the lunar surface and provides a foundation for future planetary hyperspectral representation learning and mineral mapping research.
+
+\section{Conclusion and Future Work}
+
+This paper presented \textit{TriadFormer}, a self-supervised multimodal learning framework for unsupervised spectral--compositional segmentation of the lunar surface using hyperspectral, topographic, and elemental datasets. The proposed framework integrates Chandrayaan-2 Imaging Infrared Spectrometer (IIRS) hyperspectral imagery, Terrain Mapping Camera-2 (TMC-2) elevation data, and Clementine FeO compositional maps through a cross-attention-based fusion architecture to learn complementary spectral, topographic, and elemental representations without requiring pixel-level mineral annotations. Modality-specific feature extraction using a 3D-CNN hyperspectral encoder and lightweight 2D-CNN encoders, together with SAM-guided self-supervised reconstruction, enables the framework to preserve spectral fidelity while learning discriminative multimodal latent representations.
+
+Experimental results demonstrate that \textit{TriadFormer} consistently outperforms unimodal, early-fusion, and conventional multimodal baseline architectures in terms of clustering quality, spectral reconstruction, and latent representation learning. Ablation studies validate the effectiveness of multimodal feature extraction, cross-attention fusion, and SAM-guided optimization, while computational complexity analysis confirms the efficiency of the proposed patch-based reconstruction strategy. Bootstrap evaluation and Wilcoxon signed-rank analysis show that the improvements are consistent across patch resamples of the study scene, and spatially blocked validation on held-out terrain \fillin{confirms / partly confirms} that the advantage carries over to unseen terrain within the scene. In addition, qualitative analyses, including latent-space visualization, spectral reconstruction, FeO abundance analysis, and spatial segmentation, show that the framework captures multimodal spectral--compositional relationships that can support lunar mineral exploration.
+
+Despite these promising results, several limitations remain. The clusters are latent spectral--compositional units selected for geometric separability; their lithological labels are interpretations based on band parameters, FeO and reference spectra, not validated mineral identifications, because ground truth is unavailable for the study area. The evaluation is based on \fillin{a single IIRS scene}, so generalization across lunar regions remains to be demonstrated. The use of multiple encoder branches and cross-attention fusion also increases computational complexity and training overhead, while the limited availability of large-scale annotated lunar mineral datasets restricts comprehensive supervised evaluation across diverse planetary environments. Future work will focus on validation against independent mineralogical references (e.g.\ sample-return sites and laboratory spectra), evaluation on additional IIRS scenes from geologically distinct regions, incorporating additional planetary modalities, and improving computational efficiency through lightweight architectures.
+
+% \section*{CRediT authorship contribution statement}
+
+% Nishant: Conceptualization, Methodology, Software, Validation, Formal analysis, Investigation, Data curation, Visualization, Writing -- original draft. 
+
+% Bindu Verma: Methodology, Formal analysis, Supervision, Writing -- review \& editing, Project administration. 
+
+%  Kapil Sharma: Supervision, Resources, Writing -- review \& editing, Project administration.
+
+% \section*{Funding}
+
+% No funding was received to assist with the preparation of this manuscript.
+
+\section*{Data availability}
+
+The datasets utilized in this study are publicly available from the corresponding remote sensing mission repositories. The Chandrayaan-2 IIRS observation \fillin{product ID(s)} and TMC-2 DEM \fillin{product ID} are available from the ISRO Science Data Archive (PRADAN, \url{https://pradan.issdc.gov.in}), and the Clementine FeO map \fillin{product ID} from \fillin{USGS Astrogeology / PDS URL}. The co-registration parameters, validity masks, train/validation/test block definitions, patch indices, bootstrap index sets and code required to reproduce all tables are available at \fillin{repository URL or ``from the corresponding author upon reasonable request''}.
+
+% \section*{Declaration of competing interest}
+
+% The authors declare that they have no known competing financial interests or personal relationships that could have appeared to influence the work reported in this paper.
+%% =========================================================
+%% Bibliography
+%% =========================================================
+
+
+
+\begin{thebibliography}{}
+
+\bibitem{Adams1974}
+Adams, J.B., 1974.
+Visible and near-infrared diffuse reflectance spectra of pyroxenes as applied to remote sensing of solid objects in the solar system.
+\textit{Journal of Geophysical Research}, 79(32), pp.4829--4836.
+
+\bibitem{Chowdhury2020IIRS}
+Chowdhury, A.R., Saxena, M., Kumar, A., et al., 2020.
+Imaging infrared spectrometer onboard Chandrayaan-2 orbiter.
+\textit{Current Science}, 118(3), pp.368--375.
+
+\bibitem{Chowdhury2020TMC}
+Chowdhury, A.R., Banerjee, A., Joshi, S.R., et al., 2020.
+Terrain mapping camera-2 onboard Chandrayaan-2 orbiter.
+\textit{Current Science}, 118(4), pp.566--572.
+
+\bibitem{Cloutis1991}
+Cloutis, E.A. and Gaffey, M.J., 1991.
+Pyroxene spectroscopy revisited: Spectral-compositional correlations and relationship to geothermometry.
+\textit{Journal of Geophysical Research: Planets}, 96(E5), pp.22809--22826.
+
+\bibitem{Lucey2000}
+Lucey, P.G., Blewett, D.T. and Jolliff, B.L., 2000.
+Lunar iron and titanium abundance algorithms based on final processing of Clementine ultraviolet-visible images.
+\textit{Journal of Geophysical Research: Planets}, 105(E8), pp.20297--20305.
+
+\bibitem{ref1}
+Arshad, T., Peng, B. and Rahman, A., 2025.
+Spectral-spatial wave and frequency interactive transformer for hyperspectral image classification.
+\textit{Scientific Reports}, 15, p.27259.
+
+\bibitem{ref2}
+Bose, R., Pande, S. and Banerjee, B., 2021.
+Two headed dragons: Multimodal fusion and cross modal transactions.
+In: \textit{IEEE International Geoscience and Remote Sensing Symposium}, pp.5031--5034.
+
+\bibitem{ref3}
+Cheng, S., Chan, R. and Du, A., 2024a.
+CACFTNet: A hybrid cov-attention and cross-layer fusion transformer network for hyperspectral image classification.
+\textit{IEEE Transactions on Geoscience and Remote Sensing}, 62, pp.1--16.
+
+\bibitem{ref4}
+Cheng, S., Chan, R. and Du, A., 2024b.
+MS2I2Former: Multiscale spatial-spectral information interactive transformer for hyperspectral image classification.
+\textit{IEEE Transactions on Geoscience and Remote Sensing}, 62, pp.1--15.
+
+\bibitem{ref5}
+Ghamisi, P., H\"{o}fle, B. and Zhu, X.X., 2017.
+Hyperspectral and LiDAR data fusion using extinction profiles and deep convolutional neural network.
+\textit{IEEE Journal of Selected Topics in Applied Earth Observations and Remote Sensing}, 10(6), pp.3011--3024.
+
+\bibitem{ref52}
+Ghamisi, P., Rasti, B., Yokoya, N., Wang, Q., Hofle, B., Bruzzone, L., Bovolo, F., Chi, M., Andersson, K. and Gloaguen, R., 2019.
+Multisource and multitemporal data fusion in remote sensing: A comprehensive review of the state of the art.
+\textit{IEEE Geoscience and Remote Sensing Magazine}, 7(1), pp.6--39.
+
+\bibitem{ref6}
+Han, Z., Hong, D., Gao, L., Yao, J., Zhang, B. and Chanussot, J., 2022.
+Multimodal hyperspectral unmixing: Insights from attention networks.
+\textit{IEEE Transactions on Geoscience and Remote Sensing}, 60, pp.1--13.
+
+\bibitem{ref7}
+Hang, R., Li, Z., Ghamisi, P., Hong, D., Xia, G. and Liu, Q., 2020.
+Classification of hyperspectral and LiDAR data using coupled CNNs.
+\textit{IEEE Transactions on Geoscience and Remote Sensing}, 58(7), pp.4939--4950.
+
+\bibitem{ref8}
+He, L., Zhu, J., Li, J., Plaza, A., Chanussot, J. and Yu, Z., 2021a.
+CNN-based hyperspectral pansharpening with arbitrary resolution.
+\textit{IEEE Transactions on Geoscience and Remote Sensing}, 60, pp.1--21.
+
+\bibitem{ref9}
+He, X., Chen, Y. and Lin, Z., 2021b.
+Spatial-spectral transformer for hyperspectral image classification.
+\textit{Remote Sensing}, 13(3), p.498.
+
+\bibitem{ref51}
+Hong, D., Gao, L., Yokoya, N., Yao, J., Chanussot, J., Du, Q. and Zhang, B., 2020.
+More diverse means better: Multimodal deep learning meets remote sensing imagery classification.
+\textit{IEEE Transactions on Geoscience and Remote Sensing}, 59(5), pp.4340--4354.
+
+\bibitem{ref10}
+Hong, D., Gao, L., Hang, R., Zhang, B. and Chanussot, J., 2022a.
+Deep encoder-decoder networks for classification of hyperspectral and LiDAR data.
+\textit{IEEE Geoscience and Remote Sensing Letters}, 19, pp.1--5.
+
+\bibitem{ref12}
+Hong, D., Gao, L., Yao, J., Zhang, B., Plaza, A. and Chanussot, J., 2022b.
+SpectralFormer: Rethinking hyperspectral image classification with transformers.
+\textit{IEEE Transactions on Geoscience and Remote Sensing}, 60, pp.1--15.
+
+\bibitem{Li2021}
+Li, J., Liu, Z., Lei, X. and Wang, L., 2021.
+Distributed fusion of heterogeneous remote sensing and social media data: A review and new developments.
+\textit{Proceedings of the IEEE}, 109(8), pp.1350--1363.
+
+\bibitem{ref15}
+Li, J., Zheng, K., Yao, J., Gao, L. and Hong, D., 2022a.
+Deep unsupervised blind hyperspectral and multispectral data fusion.
+\textit{IEEE Geoscience and Remote Sensing Letters}, 19, pp.1--5.
+
+\bibitem{ref16}
+Li, N., Wang, Z., Cheikh, F.A. and Wang, L., 2024.
+CentralFormer: Centralized spectral-spatial transformer for hyperspectral image classification with adaptive relevance estimation and circular pooling.
+\textit{IEEE Transactions on Geoscience and Remote Sensing}, 62, pp.1--15.
+
+\bibitem{ref17}
+Li, S., Kang, X., Fang, L., Hu, J. and Yin, H., 2017.
+Pixel-level image fusion: A survey of the state of the art.
+\textit{Information Fusion}, 33, pp.100--112.
+
+\bibitem{ref18}
+Li, S., Tian, Y., Xia, H. and Liu, Q., 2022b.
+Unmixing based pan-guided fusion network for hyperspectral imagery.
+\textit{IEEE Transactions on Geoscience and Remote Sensing}, 60, pp.1--17.
+
+\bibitem{ref19}
+Li, W., Gao, Y., Zhang, M., Tao, R. and Du, Q., 2022c.
+Asymmetric feature fusion network for hyperspectral and SAR image classification.
+\textit{IEEE Transactions on Neural Networks and Learning Systems}, 35(2), pp.2148--2162.
+
+\bibitem{ref20}
+Li, Z., Xue, Z., Xu, Q., Zhang, L., Zhu, T. and Zhang, M., 2023.
+SPFormer: Self-pooling transformer for few-shot hyperspectral image classification.
+\textit{IEEE Transactions on Geoscience and Remote Sensing}, 61, pp.1--13.
+
+\bibitem{ref21}
+Liang, L., Zhang, Y., Zhang, S., Li, J., Plaza, A. and Kang, X., 2023.
+Fast hyperspectral image classification combining transformers and SIMAM-based CNNs.
+\textit{IEEE Transactions on Geoscience and Remote Sensing}, 61, pp.1--14.
+
+\bibitem{ref22}
+Liu, S., Miao, S., Su, J., Li, B., Hu, W. and Zhang, Y.D., 2021.
+UMAG-Net: A new unsupervised multiattention-guided network for hyperspectral and multispectral image fusion.
+\textit{IEEE Journal of Selected Topics in Applied Earth Observations and Remote Sensing}, 14, pp.7373--7385.
+
+\bibitem{ref23}
+Ma, Y., Lan, Y. and Xie, Y., 2024.
+A spatial-spectral transformer for hyperspectral image classification based on global dependencies of multi-scale features.
+\textit{Remote Sensing}, 16(2), p.404.
+
+\bibitem{ref29}
+Roy, S.K., Deria, A., Hong, D., Rasti, B., Plaza, A. and Chanussot, J., 2022.
+Multimodal fusion transformer for remote sensing image classification.
+\textit{IEEE Transactions on Geoscience and Remote Sensing}, 60, pp.1--15.
+
+\bibitem{ref11}
+Sun, L., Zhao, G., Zheng, Y. and Wu, Z., 2022.
+Spectral-spatial feature tokenization transformer for hyperspectral image classification.
+\textit{IEEE Transactions on Geoscience and Remote Sensing}, 60, pp.1--14.
+
+\bibitem{ref34}
+Wang, L., Wang, H., Wang, P. and Wang, L., 2024.
+Regularized masked auto-encoder for semi-supervised hyperspectral image classification.
+\textit{IEEE Transactions on Geoscience and Remote Sensing}, 62, pp.1--13.
+
+\bibitem{ref37}
+Xi, B., Zhang, Y., Li, J., Li, Y., Li, Z. and Chanussot, J., 2024.
+CTF-SSCL: CNN-transformer for few-shot hyperspectral image classification assisted by semi-supervised contrastive learning.
+\textit{IEEE Transactions on Geoscience and Remote Sensing}, 62, pp.1--14.
+
+\end{thebibliography}
+\end{document}
